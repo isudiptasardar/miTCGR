@@ -33,7 +33,7 @@ class DetailedMetrics():
         metrics['balanced_accuracy'] = (metrics['recall'] + metrics['specificity']) / 2
         metrics['fpr'] = self.fp / (self.fp + self.tn) if (self.fp + self.tn) > 0 else 0.0
         metrics['fnr'] = self.fn / (self.fn + self.tp) if (self.fn + self.tp) > 0 else 0.0
-        metrics['lr_positive'] = metrics['sensitivity'] / metrics['fpr'] if metrics['fpr'] > 0 else float('inf') # Positive Likelihood Ratio -> PLR
+        metrics['lr_positive'] = metrics['recall'] / metrics['fpr'] if metrics['fpr'] > 0 else float('inf') # Positive Likelihood Ratio -> PLR
         metrics['lr_negative'] = metrics['specificity'] / metrics['fnr'] if metrics['fnr'] > 0 else float('inf') # Negative Likelihood Ratio -> NLR
 
         return metrics
