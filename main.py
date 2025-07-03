@@ -1,3 +1,15 @@
+import logging
+
+# Set up logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler('training.log'),
+        logging.StreamHandler()
+    ]
+)
+logger = logging.getLogger(__name__)
 
 import pandas as pd
 from config.settings import CONFIG
@@ -50,18 +62,22 @@ def main():
 
     # create dataloaders
     num_workers = mp.cpu_count() // 2
-    print(f"Number of workers: {num_workers} for DataLoader")
+
+    logging.info(f"Number of workers: {num_workers} for DataLoader")
     train_dataloader = DataLoader(train_dataset, batch_size=CONFIG['batch_size'], shuffle=True, collate_fn=custom_collate_fn, num_workers=num_workers)
     test_dataloader = DataLoader(test_dataset, batch_size=CONFIG['batch_size'], shuffle=False, collate_fn=custom_collate_fn, num_workers=num_workers)
     val_dataloader = DataLoader(val_dataset, batch_size=CONFIG['batch_size'], shuffle=False, collate_fn=custom_collate_fn, num_workers=num_workers)
 
-    print(f"Length of:\n\tTrain DataLoader: {len(train_dataloader)}\n\tTest DataLoader: {len(test_dataloader)}\n\tVal DataLoader: {len(val_dataloader)}\n")
+    logging.info(f"Length of:\n\tTrain DataLoader: {len(train_dataloader)}\n\tTest DataLoader: {len(test_dataloader)}\n\tVal DataLoader: {len(val_dataloader)}\n")
 
     # Train the model
     model = InteractionModel(dropout_rate=0.3)
     criterion = nn.CrossEntropyLoss() # Try with BCELogitLoss once
     optimizer = optim.AdamW(model.parameters(), lr=0.001, weight_decay=1e-4)
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+    # set device considering the macbook pro m1 also
+    device = torch.device('cuda' if torch.cuda.is_available() else 'mps' if torch.backends.mps.is_available() and torch.backends.mps.is_built() else 'cpu')
+
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=7, min_lr=1e-6)
 
     training_history = Trainer(model=model,
@@ -75,6 +91,15 @@ def main():
                                save_dir=CONFIG['save_dir'],
                                early_stopping_metric='Val_Accuracy',
                                early_stopping_patience=15).train()
-    print(training_history)
+    
+    train_losses, val_losses, train_accuracies, val_accuracies, best_val_accuracy, best_val_loss, best_metrics = training_history
+    logger.info(f"Best Validation Accuracy: {best_val_accuracy}")
+    logger.info(f"Best Validation Loss: {best_val_loss}")
+    logger.info(f"Best Metrics: {best_metrics}")
+    logger.info(f"Train Losses: {train_losses}")
+    logger.info(f"Val Losses: {val_losses}")
+    logger.info(f"Train Accuracies: {train_accuracies}")
+    logger.info(f"Val Accuracies: {val_accuracies}")
+
 if __name__ == "__main__":
     main()

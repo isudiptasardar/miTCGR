@@ -42,7 +42,7 @@ class DatasetLoader(Dataset):
                 case _:
                     raise ValueError(f"Invalid k_mer value in config: {self.k_mer}")
 
-            return torch.FloatTensor(m_rna_fcgr).unsqueeze(0), torch.FloatTensor(mi_rna_fcgr).unsqueeze(0), label
+            return torch.FloatTensor(m_rna_fcgr).unsqueeze(0), torch.FloatTensor(mi_rna_fcgr).unsqueeze(0), torch.tensor(label, dtype=torch.long)
         
         except Exception as e:
             print("Error in __getitem__ of DatasetLoader:", e)
@@ -53,7 +53,7 @@ def custom_collate_fn(batch):
     try:
         x_mrna = torch.stack([item[0] for item in batch], dim=0)
         x_mirna = torch.stack([item[1] for item in batch], dim=0)
-        y = torch.tensor([item[2] for item in batch], dtype=torch.long)
+        y = torch.stack([item[2] for item in batch], dim=0)
         return x_mrna, x_mirna, y
     except Exception as e:
         print("Error in custom_collate_fn of DatasetLoader:", e)
