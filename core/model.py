@@ -9,8 +9,8 @@ class InceptionBlock(nn.Module):
                          kernel_size=kernel_size, padding=kernel_size//2),
                 nn.BatchNorm2d(out_channels),
                 nn.ReLU(),
-                # nn.Dropout2d(p=0.1)  # Spatial dropout for regularization
-                nn.Dropout2d(p=0.2)
+                nn.Dropout2d(p=0.1)  # Spatial dropout for regularization
+                # nn.Dropout2d(p=0.2)
             ) for kernel_size in kernel_sizes
         ])
     
