@@ -5,9 +5,10 @@ logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.FileHandler('training.log'),
+        logging.FileHandler('training.log', mode='w', encoding='utf-8'),
         logging.StreamHandler()
-    ]
+    ],
+
 )
 logger = logging.getLogger(__name__)
 
@@ -71,7 +72,7 @@ def main():
     logging.info(f"Length of:\n\tTrain DataLoader: {len(train_dataloader)}\n\tTest DataLoader: {len(test_dataloader)}\n\tVal DataLoader: {len(val_dataloader)}\n")
 
     # Train the model
-    model = InteractionModel(dropout_rate=0.3)
+    model = InteractionModel(dropout_rate=0.3, k=CONFIG['k_mer'])
     criterion = nn.CrossEntropyLoss() # Try with BCELogitLoss once
     optimizer = optim.AdamW(model.parameters(), lr=0.001, weight_decay=1e-4)
 
