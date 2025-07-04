@@ -1,6 +1,74 @@
 import logging
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
+import math
+
+class CrossModalAttention(nn.Module):
+    def __init__(self, feature_dim: int, hidden_dim: int = 256, num_heads: int = 8, dropout_rate: float = 0.1):
+        super(CrossModalAttention, self).__init__()
+        self.feature_dim = feature_dim
+        self.hidden_dim = hidden_dim
+        self.num_heads = num_heads
+        self.head_dim = hidden_dim // num_heads
+        
+        assert hidden_dim % num_heads == 0, "hidden_dim must be divisible by num_heads"
+        
+        # Linear projections for queries, keys, and values
+        self.query_proj = nn.Linear(feature_dim, hidden_dim)
+        self.key_proj = nn.Linear(feature_dim, hidden_dim)
+        self.value_proj = nn.Linear(feature_dim, hidden_dim)
+        
+        # Output projection
+        self.out_proj = nn.Linear(hidden_dim, feature_dim)
+        
+        # Dropout
+        self.dropout = nn.Dropout(dropout_rate)
+        
+        # Layer normalization
+        self.layer_norm = nn.LayerNorm(feature_dim)
+        
+    def forward(self, query_features, key_value_features):
+        """
+        Args:
+            query_features: (batch_size, feature_dim) - features from one modality
+            key_value_features: (batch_size, feature_dim) - features from other modality
+        """
+        batch_size = query_features.size(0)
+        
+        # Store residual connection
+        residual = query_features
+        
+        # Project to Q, K, V
+        Q = self.query_proj(query_features)  # (batch_size, hidden_dim)
+        K = self.key_proj(key_value_features)  # (batch_size, hidden_dim)
+        V = self.value_proj(key_value_features)  # (batch_size, hidden_dim)
+        
+        # Reshape for multi-head attention
+        Q = Q.view(batch_size, self.num_heads, self.head_dim)  # (batch_size, num_heads, head_dim)
+        K = K.view(batch_size, self.num_heads, self.head_dim)  # (batch_size, num_heads, head_dim)
+        V = V.view(batch_size, self.num_heads, self.head_dim)  # (batch_size, num_heads, head_dim)
+        
+        # Compute attention scores
+        scores = torch.einsum('bqd,bkd->bqk', Q, K) / math.sqrt(self.head_dim)  # (batch_size, num_heads, num_heads)
+        
+        # Apply softmax
+        attention_weights = F.softmax(scores, dim=-1)
+        attention_weights = self.dropout(attention_weights)
+        
+        # Apply attention to values
+        attended_values = torch.einsum('bqk,bkd->bqd', attention_weights, V)  # (batch_size, num_heads, head_dim)
+        
+        # Concatenate heads
+        attended_values = attended_values.view(batch_size, self.hidden_dim)  # (batch_size, hidden_dim)
+        
+        # Final projection
+        output = self.out_proj(attended_values)  # (batch_size, feature_dim)
+        
+        # Residual connection and layer norm
+        output = self.layer_norm(output + residual)
+        
+        return output
 
 class InceptionBlock(nn.Module):
     def __init__(self, in_channels: int, out_channels: int, kernel_sizes: list[int], dropout_rate: float = 0.1):
@@ -97,10 +165,11 @@ class ModelK6(nn.Module):
         return x
 
 class InteractionModel(nn.Module):
-    def __init__(self, dropout_rate: float, k: int):
+    def __init__(self, dropout_rate: float, k: int, use_cross_attention: bool = True):
         super(InteractionModel, self).__init__()
         self.dropout_rate = dropout_rate
         self.k = k
+        self.use_cross_attention = use_cross_attention
 
         # Load model according to the k_mer provided
         match self.k:
@@ -116,14 +185,37 @@ class InteractionModel(nn.Module):
             case _:
                 logging.error(f"Invalid k_mer provided: {self.k}. It should be between 3-9")
         
+        # Cross-modal attention modules
+        if self.use_cross_attention:
+            feature_dim = 64*4*4  # 1024
+            self.mrna_to_mirna_attention = CrossModalAttention(
+                feature_dim=feature_dim,
+                hidden_dim=256,
+                num_heads=8,
+                dropout_rate=dropout_rate
+            )
+            self.mirna_to_mrna_attention = CrossModalAttention(
+                feature_dim=feature_dim,
+                hidden_dim=256,
+                num_heads=8,
+                dropout_rate=dropout_rate
+            )
+            
+            # Feature fusion layer
+            self.feature_fusion = nn.Sequential(
+                nn.Linear(in_features=feature_dim*2, out_features=1024),
+                nn.BatchNorm1d(num_features=1024),
+                nn.ReLU(inplace=True),
+                nn.Dropout(p=dropout_rate)
+            )
+            
+            # Adjusted classifier input size
+            classifier_input_size = 1024
+        else:
+            classifier_input_size = 64*4*4*2  # Original concatenation size
+        
         self.fc = nn.Sequential(
-            # Assuming that each branch will output 64*4*4
-            nn.Linear(in_features=64*4*4*2, out_features=1024),
-            nn.BatchNorm1d(num_features=1024),
-            nn.ReLU(inplace=True),
-            nn.Dropout(p=dropout_rate),
-
-            nn.Linear(in_features=1024, out_features=512),
+            nn.Linear(in_features=classifier_input_size, out_features=512),
             nn.BatchNorm1d(num_features=512),
             nn.ReLU(inplace=True),
             nn.Dropout(p=dropout_rate),
@@ -141,25 +233,37 @@ class InteractionModel(nn.Module):
             nn.Linear(in_features=64, out_features=32),
             nn.BatchNorm1d(num_features=32),
             nn.ReLU(inplace=True),
-            nn.Dropout(p=dropout_rate * 0.3), # Lower dropout rate before final prediction
+            nn.Dropout(p=dropout_rate * 0.3),
 
             nn.Linear(in_features=32, out_features=2)
-
-            # For BCEWithLogitsLoss uncomment the following line
-            #nn.Linear(in_features=32, out_features=1)
         )
 
         self._initialize_weights()
     
     def forward(self, x_m_rna, x_mi_rna):
-        m_rna_features = self.m_rna_model(x_m_rna)
-        mi_rna_features = self.mi_rna_model(x_mi_rna)
-
-        combined_features = torch.cat(tensors=(m_rna_features, mi_rna_features), dim=1)
+        # Extract features from both modalities
+        m_rna_features = self.m_rna_model(x_m_rna)    # (batch_size, 1024)
+        mi_rna_features = self.mi_rna_model(x_mi_rna)  # (batch_size, 1024)
+        
+        if self.use_cross_attention:
+            # Apply cross-modal attention
+            # mRNA features attended by miRNA features
+            attended_mrna = self.mrna_to_mirna_attention(m_rna_features, mi_rna_features)
+            
+            # miRNA features attended by mRNA features  
+            attended_mirna = self.mirna_to_mrna_attention(mi_rna_features, m_rna_features)
+            
+            # Combine attended features
+            combined_features = torch.cat(tensors=(attended_mrna, attended_mirna), dim=1)
+            
+            # Feature fusion
+            combined_features = self.feature_fusion(combined_features)
+        else:
+            # Original concatenation approach
+            combined_features = torch.cat(tensors=(m_rna_features, mi_rna_features), dim=1)
 
         output = self.fc(combined_features)
         return output
-    
     
     def _initialize_weights(self):
         for module in self.modules():

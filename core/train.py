@@ -79,6 +79,10 @@ class Trainer():
 
             total_loss += loss.item()
             _, predicted = torch.max(outputs.data, 1)
+            # To try with BCEWithLogitsLoss comment out above and uncomment below
+            # probs = torch.sigmoid(outputs)
+            # predicted = (probs > 0.5).long().squeeze(1)
+            
             total_predictions += label.size(0)
             correct_predictions += int(predicted.eq(label).sum().item())
 
@@ -118,9 +122,16 @@ class Trainer():
                 probabilities = torch.softmax(outputs, dim=1)
                 _, predicted = torch.max(outputs.data, 1)
 
+                # To try with BCEWithLogitsLoss comment out above and uncomment below
+                probs = torch.sigmoid(outputs)
+                # predicted = (probs > 0.5).long().squeeze(1)
+
                 all_predictions.extend(predicted.cpu().numpy())
                 all_labels.extend(label.cpu().numpy())
                 all_probabilities.extend(probabilities.cpu().numpy())
+
+                # To try with BCEWithLogitsLoss comment out above and uncomment below
+                # all_predictions.extend(probs.squeeze(1).cpu().numpy())
 
         avg_loss = total_loss/len(self.val_dataloader)
         accuracy = accuracy_score(all_labels, all_predictions)

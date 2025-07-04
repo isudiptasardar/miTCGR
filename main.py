@@ -30,6 +30,8 @@ import os
 from utils.visuals import Plotter
 
 def main():
+    
+    #Set seed for reproducibility
     seed = 123
     torch.manual_seed(seed)
     np.random.seed(seed)
@@ -46,8 +48,8 @@ def main():
     
     
     # training -> 70%, validation -> 15%, testing -> 15%
-    train, val_test = train_test_split(dataset, test_size=0.3, random_state=42, stratify=dataset[CONFIG['class_col_name']], shuffle=True)
-    val, test = train_test_split(val_test, test_size=0.5, random_state=42, stratify=val_test[CONFIG['class_col_name']], shuffle=True)
+    train, val_test = train_test_split(dataset, test_size=0.3, random_state=seed, stratify=dataset[CONFIG['class_col_name']], shuffle=True)
+    val, test = train_test_split(val_test, test_size=0.5, random_state=seed, stratify=val_test[CONFIG['class_col_name']], shuffle=True)
     
     # Load the Dataset
     train_dataset = DatasetLoader(dataset=train,
@@ -83,8 +85,11 @@ def main():
 
     # Train the model
     model = InteractionModel(dropout_rate=0.3, k=CONFIG['k_mer'])
-    criterion = nn.CrossEntropyLoss() # Try with BCELogitLoss once
+    criterion = nn.CrossEntropyLoss()
+
+    # Try with BCEWithLogitsLoss
     # criterion = nn.BCEWithLogitsLoss()
+
     optimizer = optim.AdamW(model.parameters(), lr=0.001, weight_decay=1e-4)
 
     # set device considering the macbook pro m1 also
@@ -117,7 +122,7 @@ def main():
         val_accuracies=val_accuracies,
         save_dir=save_dir
     )
-    
+
     logger.info(f"Best Validation Accuracy: {best_val_accuracy}")
     logger.info(f"Best Validation Loss: {best_val_loss}")
     logger.info(f"Best Metrics: {best_metrics}")
