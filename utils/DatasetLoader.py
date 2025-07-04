@@ -41,7 +41,8 @@ class DatasetLoader(Dataset):
                     assert mi_rna_fcgr.shape == (64, 64), f"mi_rna_fcgr shape is {mi_rna_fcgr.shape}, expected (64, 64)"
                 case _:
                     raise ValueError(f"Invalid k_mer value in config: {self.k_mer}")
-
+            
+            # for CrossEntropyLoss() -> dtype=torch.long, for BCEWithLogitsLoss() -> dtype=torch.float
             return torch.FloatTensor(m_rna_fcgr).unsqueeze(0), torch.FloatTensor(mi_rna_fcgr).unsqueeze(0), torch.tensor(label, dtype=torch.long)
         
         except Exception as e:

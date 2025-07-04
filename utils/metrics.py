@@ -1,4 +1,6 @@
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score, confusion_matrix, matthews_corrcoef
+from typing import Dict
+
 class DetailedMetrics():
     def __init__(self, y_true: list[int], y_pred: list[int], y_prob: list[float]):
         self.y_true = y_true
@@ -14,7 +16,21 @@ class DetailedMetrics():
     
     def _calculate_all_metrices(self):
 
-        metrics = {}
+        metrics: Dict[str, float] = {
+            'accuracy': float,
+            'precision': float,
+            'recall': float,
+            'specificity': float,
+            'npv': float,
+            'f1_score': float,
+            'mcc': float,
+            'roc_auc': float,
+            'balanced_accuracy': float,
+            'fpr': float,
+            'fnr': float,
+            'lr_positive': float,
+            'lr_negative': float
+        }
 
         metrics['accuracy'] = accuracy_score(self.y_true, self.y_pred)
         metrics['precision'] = precision_score(self.y_true, self.y_pred, zero_division=0) # Positive Predictive Value -> PPV

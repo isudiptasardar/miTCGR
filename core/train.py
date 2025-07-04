@@ -1,3 +1,4 @@
+import logging
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
@@ -32,10 +33,10 @@ class Trainer():
         # initialize early stopping variables
         if self.early_stopping_metric == 'Val_Accuracy':
             self.early_stopping = EarlyStopping(patience=self.early_stopping_patience, mode='max')
-            print(f"Using Early Stopping with Metric: {self.early_stopping_metric} and Patience: {self.early_stopping_patience}")
+            logging.info(f"Using Early Stopping with Metric: {self.early_stopping_metric} and Patience: {self.early_stopping_patience}")
         elif self.early_stopping_metric == 'Val_Loss':
             self.early_stopping = EarlyStopping(patience=self.early_stopping_patience, mode='min')
-            print(f"Using Early Stopping with Metric: {self.early_stopping_metric} and Patience: {self.early_stopping_patience}")
+            logging.info(f"Using Early Stopping with Metric: {self.early_stopping_metric} and Patience: {self.early_stopping_patience}")
         else:
             raise ValueError(f"Invalid early stopping metric: {self.early_stopping_metric}")
         
@@ -149,6 +150,7 @@ class Trainer():
 
 
         for epoch in range(self.epochs):
+            
             train_loss, train_acc = self.train_epoch(epoch)
             val_loss, val_acc, val_metrics = self.validate_epoch(epoch)
 
@@ -197,7 +199,7 @@ class Trainer():
                 print(f"Best model saved to: {best_model_path}")
             
             # save model checkpoints
-            if epoch % 10 == 0:
+            if (epoch + 1) % 10 == 0:
                 
                 # create checkpoints directory if it doesn't exist
                 if not os.path.exists(os.path.join(self.save_dir, 'models','checkpoints')):

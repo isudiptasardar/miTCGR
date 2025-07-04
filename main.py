@@ -35,9 +35,9 @@ def main():
         if col not in dataset.columns:
             raise Exception(f"Column {col} not found in the dataset, required columns: {required_cols}")
     
-    # split the dataset into train, test and validation sets -> Train 64%, Test 16%, Validation 20%, if you want test_and val 20%, set second test_size = 0.25
-    train_test, val = train_test_split(dataset, test_size=0.2, random_state=42, stratify=dataset[CONFIG['class_col_name']], shuffle=True)
-    train, test = train_test_split(train_test, test_size=0.2, random_state=42, stratify=train_test[CONFIG['class_col_name']], shuffle=True)
+    # training -> 70%, validation -> 20%, testing -> 10%
+    train, val_test = train_test_split(dataset, test_size=0.3, random_state=42, stratify=dataset[CONFIG['class_col_name']], shuffle=True)
+    val, test = train_test_split(val_test, test_size=0.2, random_state=42, stratify=val_test[CONFIG['class_col_name']], shuffle=True)
     
     # Load the Dataset
     train_dataset = DatasetLoader(dataset=train,

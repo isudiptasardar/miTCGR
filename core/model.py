@@ -80,7 +80,7 @@ class ModelK6(nn.Module):
             nn.ReLU(inplace=True)
         )
 
-        self.pool3 = nn.AdaptiveMaxPool2d(output_size=(4,4))
+        self.pool3 = nn.AdaptiveMaxPool2d(output_size=(4,4)) # Try with AdaptiveAveragePool
 
         self.dropout = nn.Dropout2d(p=dropout_rate)
 
@@ -141,7 +141,7 @@ class InteractionModel(nn.Module):
             nn.Linear(in_features=64, out_features=32),
             nn.BatchNorm1d(num_features=32),
             nn.ReLU(inplace=True),
-            nn.Dropout(p=dropout_rate * 0.3),
+            nn.Dropout(p=dropout_rate * 0.3), # Lower dropout rate before final prediction
 
             nn.Linear(in_features=32, out_features=2)
         )
