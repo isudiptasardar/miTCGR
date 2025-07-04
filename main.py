@@ -98,7 +98,7 @@ def main():
     scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=7, min_lr=1e-6)
 
     #where to save?
-    save_dir = os.path.join(os.getcwd(), CONFIG['save_dir'], CONFIG['k_mer'], CONFIG['batch_size'])
+    save_dir = os.path.join(os.getcwd(), str(CONFIG['save_dir']), str(CONFIG['k_mer']), str(CONFIG['batch_size']))
 
     training_history = Trainer(model=model,
                                optimizer=optimizer,
