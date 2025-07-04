@@ -26,14 +26,15 @@ import multiprocessing as mp
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 import numpy as np
 import random
-
+import os
+from utils.visuals import Plotter
 
 def main():
     seed = 123
     torch.manual_seed(seed)
     np.random.seed(seed)
     random.seed(seed)
-    
+
     # read the dataset
     dataset: pd.DataFrame = pd.read_csv(CONFIG['raw_data_path'])
     
@@ -91,6 +92,9 @@ def main():
 
     scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=7, min_lr=1e-6)
 
+    #where to save?
+    save_dir = os.path.join(os.getcwd(), CONFIG['save_dir'], CONFIG['k_mer'], CONFIG['batch_size'])
+
     training_history = Trainer(model=model,
                                optimizer=optimizer,
                                criterion=criterion,
@@ -99,11 +103,21 @@ def main():
                                train_dataloader=train_dataloader,
                                val_dataloader=val_dataloader,
                                epochs=100,
-                               save_dir=CONFIG['save_dir'],
+                               save_dir=save_dir,
                                early_stopping_metric='Val_Accuracy',
                                early_stopping_patience=15).train()
     
     train_losses, val_losses, train_accuracies, val_accuracies, best_val_accuracy, best_val_loss, best_metrics = training_history
+
+    # Plot the training history
+    Plotter(
+        train_losses=train_losses,
+        val_losses=val_losses,
+        train_accuracies=train_accuracies,
+        val_accuracies=val_accuracies,
+        save_dir=save_dir
+    )
+    
     logger.info(f"Best Validation Accuracy: {best_val_accuracy}")
     logger.info(f"Best Validation Loss: {best_val_loss}")
     logger.info(f"Best Metrics: {best_metrics}")
