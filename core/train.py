@@ -3,16 +3,17 @@ import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
 from torch.optim import Optimizer
+from torch.optim.lr_scheduler import _LRScheduler, ReduceLROnPlateau
 from tqdm import tqdm
 from sklearn.metrics import accuracy_score, precision_recall_fscore_support, roc_auc_score, confusion_matrix
 import numpy as np
 from utils.metrics import DetailedMetrics
-from typing import Literal
+from typing import Literal, Union
 from utils.EarlyStopping import EarlyStopping
 import os
 
 class Trainer():
-    def __init__(self, model: nn.Module, optimizer: Optimizer, criterion: nn.Module, scheduler: torch.optim.lr_scheduler, device: torch.device, train_dataloader: DataLoader, val_dataloader: DataLoader, epochs: int, save_dir: str, early_stopping_metric: Literal['Val_Accuracy', 'Val_Loss'], early_stopping_patience: int):
+    def __init__(self, model: nn.Module, optimizer: Optimizer, criterion: nn.Module, scheduler: Union[_LRScheduler, ReduceLROnPlateau], device: torch.device, train_dataloader: DataLoader, val_dataloader: DataLoader, epochs: int, save_dir: str, early_stopping_metric: Literal['Val_Accuracy', 'Val_Loss'], early_stopping_patience: int):
 
         self.model = model
         self.optimizer = optimizer
@@ -79,7 +80,7 @@ class Trainer():
             total_loss += loss.item()
             _, predicted = torch.max(outputs.data, 1)
             total_predictions += label.size(0)
-            correct_predictions += predicted.eq(label).sum().item()
+            correct_predictions += int(predicted.eq(label).sum().item())
 
             progress_bar.set_postfix({'Loss': f"{loss.item():.4f}", 'Accuracy': f"{(correct_predictions / total_predictions):.4f}"})
         
