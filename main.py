@@ -18,7 +18,8 @@ from sklearn.model_selection import train_test_split
 from utils.DatasetLoader import DatasetLoader, custom_collate_fn
 from torch.utils.data import DataLoader
 from core.train import Trainer
-from core.model import InteractionModel
+# from core.model import InteractionModel
+from core.crossmodelattention import InteractionModel
 from torch import optim
 import torch.nn as nn
 import torch
