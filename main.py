@@ -18,8 +18,8 @@ from sklearn.model_selection import train_test_split
 from utils.DatasetLoader import DatasetLoader, custom_collate_fn
 from torch.utils.data import DataLoader
 from core.train import Trainer
-# from core.model import InteractionModel
-from core.crossmodelattention import InteractionModel
+from core.model import InteractionModel
+# from core.crossmodelattention import InteractionModel
 from torch import optim
 import torch.nn as nn
 import torch
@@ -29,14 +29,23 @@ import numpy as np
 import random
 import os
 from utils.visuals import Plotter
+def set_seed(seed: int = 123):
+    os.environ['PYTHONHASHSEED'] = str(seed)
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+    torch.use_deterministic_algorithms(True) # if error related to this then do remove this line
+
 
 def main():
     
     #Set seed for reproducibility
     seed = 123
-    torch.manual_seed(seed)
-    np.random.seed(seed)
-    random.seed(seed)
+    set_seed(seed)
 
     # read the dataset
     dataset: pd.DataFrame = pd.read_csv(CONFIG['raw_data_path'])
@@ -77,10 +86,18 @@ def main():
     # create dataloaders
     num_workers = mp.cpu_count() // 2
 
+    def seed_worker(worker_id):
+        worker_seed = seed + worker_id
+        random.seed(worker_seed)
+        np.random.seed(worker_seed)
+        torch.manual_seed(worker_seed)
+        torch.cuda.manual_seed(worker_seed)
+        torch.cuda.manual_seed_all(worker_seed)
+
     logging.info(f"Number of workers: {num_workers} for DataLoader")
-    train_dataloader = DataLoader(train_dataset, batch_size=CONFIG['batch_size'], shuffle=True, collate_fn=custom_collate_fn, num_workers=num_workers)
-    test_dataloader = DataLoader(test_dataset, batch_size=CONFIG['batch_size'], shuffle=False, collate_fn=custom_collate_fn, num_workers=num_workers)
-    val_dataloader = DataLoader(val_dataset, batch_size=CONFIG['batch_size'], shuffle=False, collate_fn=custom_collate_fn, num_workers=num_workers)
+    train_dataloader = DataLoader(train_dataset, batch_size=CONFIG['batch_size'], shuffle=True, collate_fn=custom_collate_fn, num_workers=num_workers, worker_init_fn=seed_worker)
+    test_dataloader = DataLoader(test_dataset, batch_size=CONFIG['batch_size'], shuffle=False, collate_fn=custom_collate_fn, num_workers=num_workers, worker_init_fn=seed_worker)
+    val_dataloader = DataLoader(val_dataset, batch_size=CONFIG['batch_size'], shuffle=False, collate_fn=custom_collate_fn, num_workers=num_workers, worker_init_fn=seed_worker)
 
     logging.info(f"Length of:\n\tTrain DataLoader: {len(train_dataloader)}\n\tTest DataLoader: {len(test_dataloader)}\n\tVal DataLoader: {len(val_dataloader)}\n")
 
@@ -108,10 +125,10 @@ def main():
                                device=device,
                                train_dataloader=train_dataloader,
                                val_dataloader=val_dataloader,
-                               epochs=100,
+                               epochs=CONFIG['total_epochs'],
                                save_dir=save_dir,
                                early_stopping_metric='Val_Accuracy',
-                               early_stopping_patience=15).train()
+                               early_stopping_patience=CONFIG['early_stopping_patience']).train()
     
     train_losses, val_losses, train_accuracies, val_accuracies, best_val_accuracy, best_val_loss, best_metrics = training_history
 

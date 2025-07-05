@@ -11,7 +11,7 @@ from utils.metrics import DetailedMetrics
 from typing import Literal, Union
 from utils.EarlyStopping import EarlyStopping
 import os
-
+from utils.visuals import Plotter
 class Trainer():
     def __init__(self, model: nn.Module, optimizer: Optimizer, criterion: nn.Module, scheduler: Union[_LRScheduler, ReduceLROnPlateau], device: torch.device, train_dataloader: DataLoader, val_dataloader: DataLoader, epochs: int, save_dir: str, early_stopping_metric: Literal['Val_Accuracy', 'Val_Loss'], early_stopping_patience: int):
 
@@ -91,7 +91,7 @@ class Trainer():
         avg_loss = total_loss / len(self.train_dataloader)
         avg_accuracy = correct_predictions / total_predictions
 
-        print(f"Epoch {epoch + 1} - Training Loss: {avg_loss:.4f}, Training Accuracy: {avg_accuracy:.4f}")
+        logging.info(f"Epoch {epoch + 1} - Training Loss: {avg_loss:.4f}, Training Accuracy: {avg_accuracy:.4f}")
 
         return avg_loss, avg_accuracy
     
@@ -142,7 +142,7 @@ class Trainer():
         class_1_probs = [prob[1] for prob in all_probabilities]
         metrics = DetailedMetrics(y_true = all_labels, y_pred = all_predictions, y_prob = class_1_probs)._calculate_all_metrices()
 
-        print(f"Epoch {epoch + 1} - Validation Loss: {avg_loss:.4f}, Validation Accuracy: {accuracy:.4f}, metrics: {metrics}")
+        logging.info(f"Epoch {epoch + 1} - Validation Loss: {avg_loss:.4f}, Validation Accuracy: {accuracy:.4f}, metrics: {metrics}")
 
         return avg_loss, accuracy, metrics
     
@@ -158,8 +158,8 @@ class Trainer():
         best_metrics = None
         best_epoch = 0
 
-        print(f"Starting training for {self.epochs} epochs on device: {self.device}")
-        print(f"Training on {len(self.train_dataloader)} batches and validating on {len(self.val_dataloader)} batches...")
+        logging.info(f"Starting training for {self.epochs} epochs on device: {self.device}")
+        logging.info(f"Training on {len(self.train_dataloader)} batches and validating on {len(self.val_dataloader)} batches...")
         print(f"Model Parameters: {sum(p.numel() for p in self.model.parameters() if p.requires_grad)}")
 
 
@@ -189,12 +189,15 @@ class Trainer():
             is_improved = False
 
             if self.early_stopping_metric == 'Val_Accuracy' and val_acc > best_val_accuracy:
+                logging.info(f"Model improved - {self.early_stopping_metric}:  from {best_val_accuracy} to {val_acc} at epoch {epoch + 1}")
+
                 is_improved = True
                 best_val_accuracy = val_acc
                 best_val_loss = val_loss
                 best_metrics = val_metrics
                 best_epoch = epoch + 1
             elif self.early_stopping_metric == 'Val_Loss' and val_loss < best_val_loss:
+                logging.info(f"Model improved - {self.early_stopping_metric}:  from {best_val_loss} to {val_loss} at epoch {epoch + 1}")
                 is_improved = True
                 best_val_accuracy = val_acc
                 best_val_loss = val_loss
@@ -203,14 +206,13 @@ class Trainer():
             
             # if the model has improved then save the model
             if is_improved:
-                print(f"Model improved from: Current {self.early_stopping_metric} - {current_metric_value} at epoch {best_epoch}")
                 #create best model directory if it doesn't exist
                 if not os.path.exists(os.path.join(self.save_dir, 'models')):
                     os.makedirs(os.path.join(self.save_dir, 'models'))
 
                 best_model_path = os.path.join(self.save_dir, 'models', 'best_model.pth')
                 torch.save(self.model.state_dict(), best_model_path)
-                print(f"Best model saved to: {best_model_path}")
+                logging.info(f"Best model saved to: {best_model_path}")
             
             # save model checkpoints
             if (epoch + 1) % 10 == 0:
@@ -221,12 +223,25 @@ class Trainer():
 
                 checkpoint_path  = os.path.join(self.save_dir, 'models','checkpoints', f'checkpoint_epoch_{epoch + 1}.pth')
                 torch.save(self.model.state_dict(), checkpoint_path)
-                print(f"Checkpoint saved to: {checkpoint_path}")
+                logging.info(f"Checkpoint saved to: {checkpoint_path}")
             
             # early stopping
             if self.early_stopping(score=current_metric_value):
-                print(f"Early stopping triggered at epoch {epoch + 1}")
-                print(f"Best model is at epoch {best_epoch}")
+                logging.info(f"Early stopping triggered at epoch {epoch + 1}")
+                logging.info(f"Best model is at epoch {best_epoch}")
                 break
 
+            # get the current learning rate
+            current_lr = self.optimizer.param_groups[0]['lr']
+            logging.info(f"Current Learning Rate: {current_lr} at epoch {epoch + 1}")
+        # Plot training history and confusion matrix of best epoch
+        plotter = Plotter(
+            train_losses=train_losses,
+            val_losses=val_losses,
+            train_accuracies=train_accuracies,
+            val_accuracies=val_accuracies,
+            save_dir=self.save_dir
+        )
+        plotter.plot_training()
+        plotter.plot_confusion_matrix(y_true=best_metrics.y_true, y_pred=best_metrics.y_pred)
         return train_losses, val_losses, train_accuracies, val_accuracies, best_val_accuracy, best_val_loss, best_metrics

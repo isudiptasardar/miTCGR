@@ -1,7 +1,7 @@
 import logging
 import matplotlib.pyplot as plt
+from sklearn.metrics import confusion_matrix
 import seaborn as sns
-
 class Plotter():
     def __init__(self, train_losses, val_losses, train_accuracies, val_accuracies, save_dir: str):
 
@@ -39,3 +39,15 @@ class Plotter():
         plt.close()
         return
     
+    def plot_confusion_matrix(self, y_true, y_pred):
+        cm = confusion_matrix(y_true, y_pred)
+        plt.figure(figsize=(8, 6))
+        sns.heatmap(cm, annot=True, cmap='Blues', fmt='d',
+                    xticklabels=['No Interaction', 'Interaction'],
+                    yticklabels=['No Interaction', 'Interaction'])
+        plt.title('Confusion Matrix')
+        plt.xlabel('Predicted Label')
+        plt.ylabel('True Label')
+        plt.tight_layout()
+        plt.savefig(f"{self.save_dir}/confusion_matrix.png", dpi = 600, bbox_inches='tight')
+        plt.close()

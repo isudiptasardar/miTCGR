@@ -29,7 +29,9 @@ class DetailedMetrics():
             'fpr': float,
             'fnr': float,
             'lr_positive': float,
-            'lr_negative': float
+            'lr_negative': float,
+            'y_true': int,
+            'y_pred': int
         }
 
         metrics['accuracy'] = accuracy_score(self.y_true, self.y_pred)

@@ -8,4 +8,6 @@ CONFIG: Dict[str, any] = {
     'k_mer': 6,
     'batch_size': 32,
     'save_dir': 'output',
+    'early_stopping_patience': 5,
+    'total_epochs': 10
 }

@@ -25,10 +25,16 @@ class InceptionBlock(nn.Module):
         concatenated_out = torch.cat(tensors=outputs, dim=1)
         return concatenated_out
 class ModelK3(nn.Module):
+
+    """
+    This model has been designed for 8*8 FCGR input
+    K=3
+    """
+
     def __init__(self, in_channels: int, out_channels: int, inception_kernel_sizes: list[int], dropout_rate: float):
         super(ModelK3, self).__init__()
 
-        logging.info(f"Modelk3 initialized with inception kernel sizes {inception_kernel_sizes} and dropout_rate {dropout_rate}")
+        logging.info(f"ModelK3 initialized with inception kernel sizes {inception_kernel_sizes} and dropout_rate {dropout_rate}")
 
         self.conv1 = nn.Sequential(
             nn.Conv2d(
@@ -78,6 +84,141 @@ class ModelK3(nn.Module):
         x = self.conv3(x)           # output: 64*4*4
         x = torch.flatten(input=x, start_dim=1)
         return x
+
+class ModelK4(nn.Module):
+    """
+    This model has been designed for 16*16 FCGR input
+    K=4
+    """
+
+    def __init__(self, in_channels: int, out_channels: int, inception_kernel_sizes: list[int], dropout_rate: float):
+        super(ModelK4, self).__init__()
+        logging.info(f"ModelK4 initialized with inception kernel sizes {inception_kernel_sizes} and dropout_rate {dropout_rate}")
+
+        self.conv1 = nn.Sequential(
+            nn.Conv2d(
+                in_channels=in_channels,
+                out_channels=out_channels,
+                kernel_size=3,
+                padding=1
+            ),
+            nn.BatchNorm2d(out_channels),
+            nn.ReLU(inplace=True)
+        )
+
+        self.inception_block = InceptionBlock(
+            in_channels=out_channels,
+            out_channels=64,
+            kernel_sizes=inception_kernel_sizes,
+            dropout_rate=0.1
+        )
+
+        self.pool1 = nn.MaxPool2d(kernel_size=2, stride=2)
+
+        self.conv2 = nn.Sequential(
+            nn.Conv2d(
+                in_channels=192,
+                out_channels=128,
+                kernel_size=3,
+                padding=1
+            ),
+            nn.BatchNorm2d(128),
+            nn.ReLU(inplace=True),
+            nn.Dropout2d(p=dropout_rate, inplace=True)
+        )
+
+        self.pool2 = nn.MaxPool2d(kernel_size=2, stride=2)
+
+        self.conv3 = nn.Sequential(
+            nn.Conv2d(
+                in_channels=128,
+                out_channels=64,
+                kernel_size=3,
+                padding=1
+            ),
+            nn.BatchNorm2d(64),
+            nn.ReLU(inplace=True),
+            nn.Dropout2d(p=dropout_rate, inplace=True)
+        )
+
+    def forward(self, x):
+        x = self.conv1(x)           # output: 32*16*16
+        x = self.inception_block(x) # output: 192*16*16
+        x = self.pool1(x)           # output: 192*8*8
+        x = self.conv2(x)           # output: 128*8*8
+        x = self.pool2(x)           # output: 128*4*4
+        x = self.conv3(x)           # output: 64*4*4
+        x = torch.flatten(input=x, start_dim=1)
+        return x
+
+class ModelK5(nn.Module):
+    """
+    This model has been designed for 32*32 FCGR input
+    K=5
+    """
+
+    def __init__(self, in_channels: int, out_channels: int, inception_kernel_sizes: list[int], dropout_rate: float):
+        super(ModelK5, self).__init__()
+        logging.info(f"ModelK5 initialized with inception kernel sizes {inception_kernel_sizes} and dropout_rate {dropout_rate}")
+
+        self.conv1 = nn.Sequential(
+            nn.Conv2d(
+                in_channels=in_channels,
+                out_channels=out_channels,
+                kernel_size=3,
+                padding=1
+            ),
+            nn.BatchNorm2d(out_channels),
+            nn.ReLU(inplace=True)
+        )
+
+        self.inception_block = InceptionBlock(
+            in_channels=out_channels,
+            out_channels=64,
+            kernel_sizes=inception_kernel_sizes,
+            dropout_rate=0.1
+        )
+
+        self.pool1 = nn.MaxPool2d(kernel_size=2, stride=2)
+
+        self.conv2 = nn.Sequential(
+            nn.Conv2d(
+                in_channels=192,
+                out_channels=128,
+                kernel_size=3,
+                padding=1
+            ),
+            nn.BatchNorm2d(128),
+            nn.ReLU(inplace=True),
+            nn.Dropout2d(p=dropout_rate, inplace=True)
+        )
+
+        self.pool2 = nn.MaxPool2d(kernel_size=2, stride=2)
+
+        self.conv3 = nn.Sequential(
+            nn.Conv2d(
+                in_channels=128,
+                out_channels=64,
+                kernel_size=3,
+                padding=1
+            ),
+            nn.BatchNorm2d(64),
+            nn.ReLU(inplace=True),
+            nn.Dropout2d(p=dropout_rate, inplace=True)
+        )
+
+        self.pool3 = nn.MaxPool2d(kernel_size=2, stride=2)
+    
+    def forward(self, x):
+        x = self.conv1(x)           # output: 32*32*32
+        x = self.inception_block(x) # output: 192*32*32
+        x = self.pool1(x)           # output: 192*16*16
+        x = self.conv2(x)           # output: 128*16*16
+        x = self.pool2(x)           # output: 128*8*8
+        x = self.conv3(x)           # output: 64*8*8
+        x = self.pool3(x)           # output: 64*4*4
+        x = torch.flatten(input=x, start_dim=1)
+        return x
     
 class ModelK6(nn.Module):
     """
@@ -118,7 +259,8 @@ class ModelK6(nn.Module):
                 padding=1
             ),
             nn.BatchNorm2d(128),
-            nn.ReLU(inplace=True)
+            nn.ReLU(inplace=True),
+            nn.Dropout2d(p=dropout_rate, inplace=True)
         )
 
         self.pool2 = nn.MaxPool2d(kernel_size=2, stride=2)
@@ -131,7 +273,8 @@ class ModelK6(nn.Module):
                 padding=1
             ),
             nn.BatchNorm2d(64),
-            nn.ReLU(inplace=True)
+            nn.ReLU(inplace=True),
+            nn.Dropout2d(p=dropout_rate, inplace=True)
         )
 
         self.pool3 = nn.AdaptiveMaxPool2d(output_size=(4,4)) # Try with AdaptiveAveragePool
@@ -164,6 +307,15 @@ class InteractionModel(nn.Module):
                                            inception_kernel_sizes=[1,5,9],
                                            dropout_rate=dropout_rate)
                 self.mi_rna_model = ModelK3(in_channels=1,
+                                            out_channels=32,
+                                            inception_kernel_sizes=[1,3,5],
+                                            dropout_rate=dropout_rate)
+            case 4:
+                self.m_rna_model = ModelK4(in_channels=1,
+                                           out_channels=32,
+                                           inception_kernel_sizes=[1,5,9],
+                                           dropout_rate=dropout_rate)
+                self.mi_rna_model = ModelK4(in_channels=1,
                                             out_channels=32,
                                             inception_kernel_sizes=[1,3,5],
                                             dropout_rate=dropout_rate)
