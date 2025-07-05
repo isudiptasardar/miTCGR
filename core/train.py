@@ -5,7 +5,7 @@ from torch.utils.data import DataLoader
 from torch.optim import Optimizer
 from torch.optim.lr_scheduler import _LRScheduler, ReduceLROnPlateau
 from tqdm import tqdm
-from sklearn.metrics import accuracy_score
+from sklearn.metrics import accuracy_score, confusion_matrix
 import numpy as np
 from utils.metrics import DetailedMetrics
 from typing import Literal, Union
@@ -141,7 +141,9 @@ class Trainer():
         # Get Detailed Metrics
         class_1_probs = [prob[1] for prob in all_probabilities]
         metrics = DetailedMetrics(y_true = all_labels, y_pred = all_predictions, y_prob = class_1_probs)._calculate_all_metrices()
-
+        cm = confusion_matrix(all_labels, all_predictions)
+        print(type(cm))
+        metrics['confusion_matrix'] = cm
         logging.info(f"Epoch {epoch + 1} - Validation Loss: {avg_loss:.4f}, Validation Accuracy: {accuracy:.4f}, metrics: {metrics}")
 
         return avg_loss, accuracy, metrics
@@ -234,12 +236,5 @@ class Trainer():
             # get the current learning rate
             current_lr = self.optimizer.param_groups[0]['lr']
             logging.info(f"Current Learning Rate: {current_lr} at epoch {epoch + 1}")
-        # Plot training history and confusion matrix of best epoch
-        plotter = Plotter(
-            train_losses=train_losses,
-            val_losses=val_losses,
-            train_accuracies=train_accuracies,
-            val_accuracies=val_accuracies,
-            save_dir=self.save_dir
-        )
+        
         return train_losses, val_losses, train_accuracies, val_accuracies, best_val_accuracy, best_val_loss, best_metrics

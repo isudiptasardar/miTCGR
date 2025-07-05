@@ -29,6 +29,11 @@ import numpy as np
 import random
 import os
 from utils.visuals import Plotter
+def seed_worker(worker_id):
+    worker_seed = torch.initial_seed() % 2**32
+    np.random.seed(worker_seed)
+    random.seed(worker_seed)
+
 def set_seed(seed: int = 123):
     os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8" # uncomment if using CUDA
     os.environ['PYTHONHASHSEED'] = str(seed)
@@ -42,10 +47,9 @@ def set_seed(seed: int = 123):
     torch.use_deterministic_algorithms(True, warn_only=True) # if error related to this then do remove this line
 
 
-def main():
+def main(seed: int = 123):
     
     #Set seed for reproducibility
-    seed = 123
     set_seed(seed)
 
     # read the dataset
@@ -87,18 +91,13 @@ def main():
     # create dataloaders
     num_workers = mp.cpu_count() // 2
 
-    def seed_worker(worker_id):
-        worker_seed = seed + worker_id
-        random.seed(worker_seed)
-        np.random.seed(worker_seed)
-        torch.manual_seed(worker_seed)
-        torch.cuda.manual_seed(worker_seed)
-        torch.cuda.manual_seed_all(worker_seed)
+    g = torch.Generator()
+    g.manual_seed(seed)
 
     logging.info(f"Number of workers: {num_workers} for DataLoader")
-    train_dataloader = DataLoader(train_dataset, batch_size=CONFIG['batch_size'], shuffle=True, collate_fn=custom_collate_fn, num_workers=num_workers, worker_init_fn=seed_worker)
-    test_dataloader = DataLoader(test_dataset, batch_size=CONFIG['batch_size'], shuffle=False, collate_fn=custom_collate_fn, num_workers=num_workers, worker_init_fn=seed_worker)
-    val_dataloader = DataLoader(val_dataset, batch_size=CONFIG['batch_size'], shuffle=False, collate_fn=custom_collate_fn, num_workers=num_workers, worker_init_fn=seed_worker)
+    train_dataloader = DataLoader(train_dataset, batch_size=CONFIG['batch_size'], shuffle=True, collate_fn=custom_collate_fn, num_workers=num_workers, worker_init_fn=seed_worker, generator=g)
+    test_dataloader = DataLoader(test_dataset, batch_size=CONFIG['batch_size'], shuffle=False, collate_fn=custom_collate_fn, num_workers=num_workers, worker_init_fn=seed_worker, generator=g)
+    val_dataloader = DataLoader(val_dataset, batch_size=CONFIG['batch_size'], shuffle=False, collate_fn=custom_collate_fn, num_workers=num_workers, worker_init_fn=seed_worker, generator=g)
 
     logging.info(f"Length of:\n\tTrain DataLoader: {len(train_dataloader)}\n\tTest DataLoader: {len(test_dataloader)}\n\tVal DataLoader: {len(val_dataloader)}\n")
 
@@ -133,7 +132,7 @@ def main():
     
     train_losses, val_losses, train_accuracies, val_accuracies, best_val_accuracy, best_val_loss, best_metrics = training_history
 
-    # Plot the training history
+    #Plot the training history
     plotter = Plotter(
         train_losses=train_losses,
         val_losses=val_losses,
@@ -143,8 +142,7 @@ def main():
     )
 
     plotter.plot_training()
-
-    plotter.plot_confusion_matrix(y_true=best_metrics['y_true'], y_pred=best_metrics['y_pred'])
+    plotter.plot_confusion_matrix(cm=best_metrics['confusion_matrix'])
 
     logger.info(f"Best Validation Accuracy: {best_val_accuracy}")
     logger.info(f"Best Validation Loss: {best_val_loss}")
