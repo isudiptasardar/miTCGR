@@ -18,8 +18,8 @@ from sklearn.model_selection import train_test_split
 from utils.DatasetLoader import DatasetLoader, custom_collate_fn
 from torch.utils.data import DataLoader
 from core.train import Trainer
-# from core.model import InteractionModel
-from core.crossmodelattention import InteractionModel
+from core.model import InteractionModel
+# from core.crossmodelattention import InteractionModel
 from torch import optim
 import torch.nn as nn
 import torch
@@ -86,10 +86,10 @@ def main():
 
     # Train the model
     model = InteractionModel(dropout_rate=0.3, k=CONFIG['k_mer'])
-    criterion = nn.CrossEntropyLoss()
+    # criterion = nn.CrossEntropyLoss()
 
     # Try with BCEWithLogitsLoss
-    # criterion = nn.BCEWithLogitsLoss()
+    criterion = nn.BCEWithLogitsLoss()
 
     optimizer = optim.AdamW(model.parameters(), lr=0.001, weight_decay=1e-4)
 

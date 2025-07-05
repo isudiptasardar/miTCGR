@@ -9,6 +9,7 @@ class Plotter():
         self.val_losses = val_losses
         self.train_accuracies = train_accuracies
         self.val_accuracies = val_accuracies
+        self.save_dir = save_dir
 
         # check if all the lists have the same length
         if len(self.train_losses) != len(self.val_losses) != len(self.train_accuracies) != len(self.val_accuracies):

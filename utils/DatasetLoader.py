@@ -43,7 +43,7 @@ class DatasetLoader(Dataset):
                     raise ValueError(f"Invalid k_mer value in config: {self.k_mer}")
             
             # for CrossEntropyLoss() -> dtype=torch.long, for BCEWithLogitsLoss() -> dtype=torch.float
-            return torch.FloatTensor(m_rna_fcgr).unsqueeze(0), torch.FloatTensor(mi_rna_fcgr).unsqueeze(0), torch.tensor(label, dtype=torch.long)
+            return torch.FloatTensor(m_rna_fcgr).unsqueeze(0), torch.FloatTensor(mi_rna_fcgr).unsqueeze(0), torch.tensor(label, dtype=torch.float)
         
         except Exception as e:
             print("Error in __getitem__ of DatasetLoader:", e)
