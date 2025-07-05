@@ -1,3 +1,4 @@
+import logging
 import torch
 from torch.utils.data import Dataset
 import pandas as pd
@@ -15,7 +16,7 @@ class DatasetLoader(Dataset):
         self.mi_rna_col_name = mi_rna_col_name
         self.class_col_name = class_col_name
 
-        print(f'Loaded {self.dataset_type} dataset with {len(self.dataset)} samples. Processing for {self.k_mer}-mer...')
+        logging.info(f'Loaded {self.dataset_type} dataset with {len(self.dataset)} samples. Processing for {self.k_mer}-mer...')
     
     def __len__(self):
         return len(self.dataset)
@@ -36,7 +37,13 @@ class DatasetLoader(Dataset):
                 case 3:
                     assert m_rna_fcgr.shape == (8, 8), f"m_rna_fcgr shape is {m_rna_fcgr.shape}, expected (8, 8)"
                     assert mi_rna_fcgr.shape == (8, 8), f"mi_rna_fcgr shape is {mi_rna_fcgr.shape}, expected (8, 8)"
-                case 6: 
+                case 4:
+                    assert m_rna_fcgr.shape == (16, 16), f"m_rna_fcgr shape is {m_rna_fcgr.shape}, expected (16, 16)"
+                    assert mi_rna_fcgr.shape == (16, 16), f"mi_rna_fcgr shape is {mi_rna_fcgr.shape}, expected (16, 16)"
+                case 5:
+                    assert m_rna_fcgr.shape == (32, 32), f"m_rna_fcgr shape is {m_rna_fcgr.shape}, expected (32, 32)"
+                    assert mi_rna_fcgr.shape == (32, 32), f"mi_rna_fcgr shape is {mi_rna_fcgr.shape}, expected (32, 32)"
+                case 6:
                     assert m_rna_fcgr.shape == (64, 64), f"m_rna_fcgr shape is {m_rna_fcgr.shape}, expected (64, 64)"
                     assert mi_rna_fcgr.shape == (64, 64), f"mi_rna_fcgr shape is {mi_rna_fcgr.shape}, expected (64, 64)"
                 case _:
@@ -46,7 +53,7 @@ class DatasetLoader(Dataset):
             return torch.FloatTensor(m_rna_fcgr).unsqueeze(0), torch.FloatTensor(mi_rna_fcgr).unsqueeze(0), torch.tensor(label, dtype=torch.long)
         
         except Exception as e:
-            print("Error in __getitem__ of DatasetLoader:", e)
+            logging.error("Error in __getitem__ of DatasetLoader:", e)
             raise e
         
 
@@ -57,5 +64,5 @@ def custom_collate_fn(batch):
         y = torch.stack([item[2] for item in batch], dim=0)
         return x_mrna, x_mirna, y
     except Exception as e:
-        print("Error in custom_collate_fn of DatasetLoader:", e)
+        logging.error("Error in custom_collate_fn of DatasetLoader:", e)
         raise e

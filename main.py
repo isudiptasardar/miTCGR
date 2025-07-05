@@ -35,7 +35,7 @@ def seed_worker(worker_id):
     random.seed(worker_seed)
 
 def set_seed(seed: int = 123):
-    os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8" # uncomment if using CUDA
+    #os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8" # uncomment if using CUDA
     os.environ['PYTHONHASHSEED'] = str(seed)
     random.seed(seed)
     np.random.seed(seed)
@@ -44,7 +44,7 @@ def set_seed(seed: int = 123):
     torch.cuda.manual_seed_all(seed)
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
-    torch.use_deterministic_algorithms(True, warn_only=True) # if error related to this then do remove this line
+    #torch.use_deterministic_algorithms(True, warn_only=True) # if error related to this then do remove this line
 
 
 def main(seed: int = 123):
