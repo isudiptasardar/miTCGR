@@ -319,6 +319,15 @@ class InteractionModel(nn.Module):
                                             out_channels=32,
                                             inception_kernel_sizes=[1,3,5],
                                             dropout_rate=dropout_rate)
+            case 5:
+                self.m_rna_model = ModelK5(in_channels=1,
+                                           out_channels=32,
+                                           inception_kernel_sizes=[1,5,9],
+                                           dropout_rate=dropout_rate)
+                self.mi_rna_model = ModelK5(in_channels=1,
+                                            out_channels=32,
+                                            inception_kernel_sizes=[1,3,5],
+                                            dropout_rate=dropout_rate)
             case 6:
                 self.m_rna_model = ModelK6(in_channels=1,
                                            out_channels=32,
