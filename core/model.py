@@ -260,7 +260,7 @@ class ModelK6(nn.Module):
             ),
             nn.BatchNorm2d(128),
             nn.ReLU(inplace=True),
-            nn.Dropout2d(p=dropout_rate, inplace=True)
+            nn.Dropout2d(p=dropout_rate)
         )
 
         self.pool2 = nn.MaxPool2d(kernel_size=2, stride=2)
