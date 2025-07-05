@@ -126,12 +126,14 @@ class Trainer():
                 probs = torch.sigmoid(outputs)
                 predicted = (probs > 0.5).long().squeeze(1)
 
-                all_predictions.extend(predicted.cpu().numpy())
-                all_labels.extend(label.cpu().numpy())
+                # all_predictions.extend(predicted.cpu().numpy())
+                # all_labels.extend(label.cpu().numpy())
                 # all_probabilities.extend(probabilities.cpu().numpy())
 
                 # To try with BCEWithLogitsLoss comment out above and uncomment below
                 all_predictions.extend(probs.squeeze(1).cpu().numpy())
+                all_labels.extend(label.cpu().numpy())
+                all_probabilities.extend(probs.cpu().numpy())
 
         avg_loss = total_loss/len(self.val_dataloader)
         accuracy = accuracy_score(all_labels, all_predictions)
