@@ -18,7 +18,8 @@ from sklearn.model_selection import train_test_split
 from utils.DatasetLoader import DatasetLoader, custom_collate_fn
 from torch.utils.data import DataLoader
 from core.train import Trainer
-from core.model import InteractionModel
+# from core.model import InteractionModel
+from core.crossmodelattention import InteractionModel
 from torch import optim
 import torch.nn as nn
 import torch
@@ -29,7 +30,7 @@ import random
 import os
 from utils.visuals import Plotter
 def set_seed(seed: int = 123):
-    #os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8" # uncomment if using CUDA
+    os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8" # uncomment if using CUDA
     os.environ['PYTHONHASHSEED'] = str(seed)
     random.seed(seed)
     np.random.seed(seed)
@@ -38,7 +39,7 @@ def set_seed(seed: int = 123):
     torch.cuda.manual_seed_all(seed)
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
-    torch.use_deterministic_algorithms(True) # if error related to this then do remove this line
+    torch.use_deterministic_algorithms(True, warn_only=True) # if error related to this then do remove this line
 
 
 def main():
