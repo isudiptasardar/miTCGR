@@ -133,13 +133,17 @@ def main():
     train_losses, val_losses, train_accuracies, val_accuracies, best_val_accuracy, best_val_loss, best_metrics = training_history
 
     # Plot the training history
-    Plotter(
+    plotter = Plotter(
         train_losses=train_losses,
         val_losses=val_losses,
         train_accuracies=train_accuracies,
         val_accuracies=val_accuracies,
         save_dir=save_dir
     )
+
+    plotter.plot_training()
+
+    plotter.plot_confusion_matrix(y_true=best_metrics['y_true'], y_pred=best_metrics['y_pred'])
 
     logger.info(f"Best Validation Accuracy: {best_val_accuracy}")
     logger.info(f"Best Validation Loss: {best_val_loss}")

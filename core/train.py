@@ -160,7 +160,7 @@ class Trainer():
 
         logging.info(f"Starting training for {self.epochs} epochs on device: {self.device}")
         logging.info(f"Training on {len(self.train_dataloader)} batches and validating on {len(self.val_dataloader)} batches...")
-        print(f"Model Parameters: {sum(p.numel() for p in self.model.parameters() if p.requires_grad)}")
+        logging.info(f"Model Parameters: {sum(p.numel() for p in self.model.parameters() if p.requires_grad)}")
 
 
         for epoch in range(self.epochs):
@@ -242,6 +242,4 @@ class Trainer():
             val_accuracies=val_accuracies,
             save_dir=self.save_dir
         )
-        plotter.plot_training()
-        plotter.plot_confusion_matrix(y_true=best_metrics.y_true, y_pred=best_metrics.y_pred)
         return train_losses, val_losses, train_accuracies, val_accuracies, best_val_accuracy, best_val_loss, best_metrics

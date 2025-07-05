@@ -184,7 +184,7 @@ class InteractionModel(nn.Module):
             )
             
             # Feature fusion layer for the combined attended features
-            fused_feature_dim = (cnn_output_channels * cn_output_size) * 2
+            fused_feature_dim = (cnn_output_channels * cnn_output_size) * 2
             self.feature_fusion = nn.Sequential(
                 nn.Linear(in_features=fused_feature_dim, out_features=1024),
                 nn.BatchNorm1d(num_features=1024),
