@@ -15,7 +15,7 @@ class InceptionBlock(nn.Module):
                     padding=kernel_size//2
                 ),
                 nn.BatchNorm2d(out_channels),
-                nn.ReLU(inplace=True),
+                nn.ReLU(),
                 nn.Dropout2d(p=dropout_rate)
             ) for kernel_size in kernel_sizes
         ])
@@ -44,7 +44,7 @@ class ModelK3(nn.Module):
                 padding=1
             ),
             nn.BatchNorm2d(out_channels),
-            nn.ReLU(inplace=True)
+            nn.ReLU()
         )
         self.inception_block = InceptionBlock(
             in_channels=out_channels,
@@ -60,8 +60,8 @@ class ModelK3(nn.Module):
                 padding=1
             ),
             nn.BatchNorm2d(128),
-            nn.ReLU(inplace=True),
-            nn.Dropout2d(p=dropout_rate, inplace=True)
+            nn.ReLU(),
+            nn.Dropout2d(p=dropout_rate)
         )
         self.pool = nn.MaxPool2d(kernel_size=2, stride=2)
         self.conv3 = nn.Sequential(
@@ -72,8 +72,8 @@ class ModelK3(nn.Module):
                 padding=1
             ),
             nn.BatchNorm2d(64),
-            nn.ReLU(inplace=True),
-            nn.Dropout2d(p=dropout_rate, inplace=True)
+            nn.ReLU(),
+            nn.Dropout2d(p=dropout_rate)
         )
     
     def forward(self, x):
@@ -103,7 +103,7 @@ class ModelK4(nn.Module):
                 padding=1
             ),
             nn.BatchNorm2d(out_channels),
-            nn.ReLU(inplace=True)
+            nn.ReLU()
         )
 
         self.inception_block = InceptionBlock(
@@ -123,8 +123,8 @@ class ModelK4(nn.Module):
                 padding=1
             ),
             nn.BatchNorm2d(128),
-            nn.ReLU(inplace=True),
-            nn.Dropout2d(p=dropout_rate, inplace=True)
+            nn.ReLU(),
+            nn.Dropout2d(p=dropout_rate)
         )
 
         self.pool2 = nn.MaxPool2d(kernel_size=2, stride=2)
@@ -137,8 +137,8 @@ class ModelK4(nn.Module):
                 padding=1
             ),
             nn.BatchNorm2d(64),
-            nn.ReLU(inplace=True),
-            nn.Dropout2d(p=dropout_rate, inplace=True)
+            nn.ReLU(),
+            nn.Dropout2d(p=dropout_rate)
         )
 
     def forward(self, x):
@@ -169,7 +169,7 @@ class ModelK5(nn.Module):
                 padding=1
             ),
             nn.BatchNorm2d(out_channels),
-            nn.ReLU(inplace=True)
+            nn.ReLU()
         )
 
         self.inception_block = InceptionBlock(
@@ -189,8 +189,8 @@ class ModelK5(nn.Module):
                 padding=1
             ),
             nn.BatchNorm2d(128),
-            nn.ReLU(inplace=True),
-            nn.Dropout2d(p=dropout_rate, inplace=True)
+            nn.ReLU(),
+            nn.Dropout2d(p=dropout_rate)
         )
 
         self.pool2 = nn.MaxPool2d(kernel_size=2, stride=2)
@@ -203,8 +203,8 @@ class ModelK5(nn.Module):
                 padding=1
             ),
             nn.BatchNorm2d(64),
-            nn.ReLU(inplace=True),
-            nn.Dropout2d(p=dropout_rate, inplace=True)
+            nn.ReLU(),
+            nn.Dropout2d(p=dropout_rate)
         )
 
         self.pool3 = nn.MaxPool2d(kernel_size=2, stride=2)
@@ -239,7 +239,7 @@ class ModelK6(nn.Module):
                 padding=1
             ),
             nn.BatchNorm2d(out_channels),
-            nn.ReLU(inplace=True)
+            nn.ReLU()
         )
 
         self.inception_block = InceptionBlock(
@@ -259,7 +259,7 @@ class ModelK6(nn.Module):
                 padding=1
             ),
             nn.BatchNorm2d(128),
-            nn.ReLU(inplace=True),
+            nn.ReLU(),
             nn.Dropout2d(p=dropout_rate)
         )
 
@@ -273,8 +273,8 @@ class ModelK6(nn.Module):
                 padding=1
             ),
             nn.BatchNorm2d(64),
-            nn.ReLU(inplace=True),
-            nn.Dropout2d(p=dropout_rate, inplace=True)
+            nn.ReLU(),
+            nn.Dropout2d(p=dropout_rate)
         )
 
         self.pool3 = nn.AdaptiveMaxPool2d(output_size=(4,4)) # Try with AdaptiveAveragePool
@@ -335,27 +335,27 @@ class InteractionModel(nn.Module):
             # Assuming that each branch will output 64*4*4
             nn.Linear(in_features=64*4*4*2, out_features=1024),
             nn.BatchNorm1d(num_features=1024),
-            nn.ReLU(inplace=True),
+            nn.ReLU(),
             nn.Dropout(p=dropout_rate),
 
             nn.Linear(in_features=1024, out_features=512),
             nn.BatchNorm1d(num_features=512),
-            nn.ReLU(inplace=True),
+            nn.ReLU(),
             nn.Dropout(p=dropout_rate),
 
             nn.Linear(in_features=512, out_features=128),
             nn.BatchNorm1d(num_features=128),
-            nn.ReLU(inplace=True),
+            nn.ReLU(),
             nn.Dropout(p=dropout_rate),
 
             nn.Linear(in_features=128, out_features=64),
             nn.BatchNorm1d(num_features=64),
-            nn.ReLU(inplace=True),
+            nn.ReLU(),
             nn.Dropout(p=dropout_rate * 0.6),
 
             nn.Linear(in_features=64, out_features=32),
             nn.BatchNorm1d(num_features=32),
-            nn.ReLU(inplace=True),
+            nn.ReLU(),
             nn.Dropout(p=dropout_rate * 0.3), # Lower dropout rate before final prediction
 
             nn.Linear(in_features=32, out_features=2)
