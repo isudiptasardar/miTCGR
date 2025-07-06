@@ -141,10 +141,10 @@ class Trainer():
         accuracy = accuracy_score(all_labels, all_predictions)
 
         # Get Detailed Metrics
-        class_1_probs = [prob[1] for prob in all_probabilities]
+        #class_1_probs = [prob[1] for prob in all_probabilities]
         
         # For nn.CrossEntropyLoss()
-        metrics = DetailedMetrics(y_true = all_labels, y_pred = all_predictions, y_prob = class_1_probs)._calculate_all_metrices()
+        #metrics = DetailedMetrics(y_true = all_labels, y_pred = all_predictions, y_prob = class_1_probs)._calculate_all_metrices()
 
         # For nn.BCEWithLogitsLoss()
         metrics = DetailedMetrics(y_true = all_labels, y_pred = all_predictions, y_prob = all_probabilities)._calculate_all_metrices()
