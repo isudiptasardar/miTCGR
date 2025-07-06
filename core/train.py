@@ -13,7 +13,7 @@ from utils.EarlyStopping import EarlyStopping
 import os
 from utils.visuals import Plotter
 class Trainer():
-    def __init__(self, model: nn.Module, optimizer: Optimizer, criterion: nn.Module, scheduler: Union[_LRScheduler, ReduceLROnPlateau], device: torch.device, train_dataloader: DataLoader, val_dataloader: DataLoader, epochs: int, save_dir: str, early_stopping_metric: Literal['Val_Accuracy', 'Val_Loss'], early_stopping_patience: int):
+    def __init__(self, model: nn.Module, optimizer: Optimizer, criterion: nn.Module, scheduler: Union[_LRScheduler, ReduceLROnPlateau], device: torch.device, train_dataloader: DataLoader, val_dataloader: DataLoader, epochs: int, save_dir: str, early_stopping_metric: Literal['Val_Accuracy', 'Val_Loss'], early_stopping_patience: int, early_stopping_delta: float):
 
         self.model = model
         self.optimizer = optimizer
@@ -26,6 +26,7 @@ class Trainer():
         self.save_dir = save_dir
         self.early_stopping_metric = early_stopping_metric
         self.early_stopping_patience = early_stopping_patience
+        self.delta = early_stopping_delta
 
         # create save directory if it doesn't exist
         if not os.path.exists(self.save_dir):
@@ -199,7 +200,7 @@ class Trainer():
             # check if the model has improved
             is_improved = False
 
-            if self.early_stopping_metric == 'Val_Accuracy' and val_acc > best_val_accuracy:
+            if self.early_stopping_metric == 'Val_Accuracy' and val_acc > best_val_accuracy + self.delta:
                 logging.info(f"Model improved - {self.early_stopping_metric}:  from {best_val_accuracy} to {val_acc} at epoch {epoch + 1}")
 
                 is_improved = True
@@ -207,7 +208,7 @@ class Trainer():
                 best_val_loss = val_loss
                 best_metrics = val_metrics
                 best_epoch = epoch + 1
-            elif self.early_stopping_metric == 'Val_Loss' and val_loss < best_val_loss:
+            elif self.early_stopping_metric == 'Val_Loss' and val_loss < best_val_loss - self.delta:
                 logging.info(f"Model improved - {self.early_stopping_metric}:  from {best_val_loss} to {val_loss} at epoch {epoch + 1}")
                 is_improved = True
                 best_val_accuracy = val_acc

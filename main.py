@@ -128,7 +128,8 @@ def main(seed: int = 123):
                                epochs=CONFIG['total_epochs'],
                                save_dir=save_dir,
                                early_stopping_metric='Val_Accuracy',
-                               early_stopping_patience=CONFIG['early_stopping_patience']).train()
+                               early_stopping_patience=CONFIG['early_stopping_patience'],
+                               early_stopping_delta=CONFIG['early_stopping_delta']).train()
     
     train_losses, val_losses, train_accuracies, val_accuracies, best_val_accuracy, best_val_loss, best_metrics = training_history
 
