@@ -367,10 +367,10 @@ class InteractionModel(nn.Module):
             nn.ReLU(),
             nn.Dropout(p=dropout_rate * 0.3), # Lower dropout rate before final prediction
 
-            nn.Linear(in_features=32, out_features=2)
+            # nn.Linear(in_features=32, out_features=2)
 
             # For BCEWithLogitsLoss uncomment the following line and comment the line above
-            # nn.Linear(in_features=32, out_features=1)
+            nn.Linear(in_features=32, out_features=1)
         )
 
         self._initialize_weights()
