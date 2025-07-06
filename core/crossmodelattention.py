@@ -217,7 +217,7 @@ class InteractionModel(nn.Module):
             nn.ReLU(inplace=True),
             nn.Dropout(p=dropout_rate * 0.3),
 
-            nn.Linear(in_features=32, out_features=2)
+            nn.Linear(in_features=32, out_features=1)
         )
 
         self._initialize_weights()

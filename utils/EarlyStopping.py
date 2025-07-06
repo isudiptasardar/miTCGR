@@ -2,7 +2,7 @@ class EarlyStopping:
     """
     mode: 'min'(lower is better) -> Val_Loss, 'max' (higher is better) -> Accuracy.
     """
-    def __init__(self, patience: int = 10, delta: float = 1e-3, mode: str = 'min') -> None:
+    def __init__(self, patience: int = 10, delta: float = 0.0001, mode: str = 'min') -> None:
 
         # Check the mode of Early Stopping else raise Error
         if mode not in ('min', 'max'):
