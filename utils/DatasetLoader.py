@@ -64,7 +64,7 @@ def custom_collate_fn(batch):
     try:
         x_mrna = torch.stack([item[0] for item in batch], dim=0)
         x_mirna = torch.stack([item[1] for item in batch], dim=0)
-        y = torch.stack([item[2] for item in batch], dim=0)
+        y = torch.stack([item[2] for item in batch], dim=0).squeeze(-1)
         return x_mrna, x_mirna, y
     except Exception as e:
         logging.error("Error in custom_collate_fn of DatasetLoader:", e)
