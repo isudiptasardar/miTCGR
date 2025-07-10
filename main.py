@@ -1,16 +1,6 @@
 import logging
 
-# Set up logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.FileHandler('training.log', mode='w', encoding='utf-8'),
-        logging.StreamHandler()
-    ],
 
-)
-logger = logging.getLogger(__name__)
 
 import pandas as pd
 from config.settings import CONFIG
@@ -156,4 +146,14 @@ def main(seed: int = 123):
     logger.info(f"Val Accuracies: {val_accuracies}")
 
 if __name__ == "__main__":
+    # Set up logging
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(levelname)s - %(message)s',
+        handlers=[
+            logging.FileHandler('training.log', mode='w', encoding='utf-8'),
+            logging.StreamHandler()
+        ],
+    )
+    logger = logging.getLogger(__name__)
     main()
