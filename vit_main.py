@@ -135,8 +135,9 @@ class VisionTransformer(nn.Module):
         cls_output = self.norm(cls_output)
         output = self.head(cls_output)
         
-        # For BCEWithLogitsLoss, we need a single logit output
-        return output.squeeze(-1)
+        # For BCEWithLogitsLoss, we need a 2D output of [batch_size, 1]
+        # to match the existing Trainer's expectations.
+        return output
 
 def set_seed(seed: int = 123):
     os.environ['PYTHONHASHSEED'] = str(seed)
