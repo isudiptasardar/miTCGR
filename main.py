@@ -19,7 +19,6 @@ from utils.DatasetLoader import DatasetLoader, custom_collate_fn
 from torch.utils.data import DataLoader
 from core.train import Trainer
 from core.model import InteractionModel
-# from core.crossmodelattention import InteractionModel
 from torch import optim
 import torch.nn as nn
 import torch
@@ -29,6 +28,7 @@ import numpy as np
 import random
 import os
 from utils.visuals import Plotter
+
 def seed_worker(worker_id):
     worker_seed = torch.initial_seed() % 2**32
     np.random.seed(worker_seed)
@@ -72,21 +72,24 @@ def main(seed: int = 123):
                                   k_mer=CONFIG['k_mer'],
                                   m_rna_col_name=CONFIG['m_rna_col_name'],
                                   mi_rna_col_name=CONFIG['mi_rna_col_name'],
-                                  class_col_name=CONFIG['class_col_name'])
+                                  class_col_name=CONFIG['class_col_name'],
+                                  useBCEWithLogitsLoss=CONFIG['useBCEWithLogitsLoss'])
 
     test_dataset = DatasetLoader(dataset=test,
                                  dataset_type='Test',
                                  k_mer=CONFIG['k_mer'],
                                  m_rna_col_name=CONFIG['m_rna_col_name'],
                                  mi_rna_col_name=CONFIG['mi_rna_col_name'],
-                                 class_col_name=CONFIG['class_col_name'])
+                                 class_col_name=CONFIG['class_col_name'],
+                                 useBCEWithLogitsLoss=CONFIG['useBCEWithLogitsLoss'])
     
     val_dataset = DatasetLoader(dataset=val,
                                 dataset_type='Validation',
                                 k_mer=CONFIG['k_mer'],
                                 m_rna_col_name=CONFIG['m_rna_col_name'],
                                 mi_rna_col_name=CONFIG['mi_rna_col_name'],
-                                class_col_name=CONFIG['class_col_name'])
+                                class_col_name=CONFIG['class_col_name'],
+                                useBCEWithLogitsLoss=CONFIG['useBCEWithLogitsLoss'])
 
     # create dataloaders
     num_workers = mp.cpu_count() // 2
@@ -102,11 +105,9 @@ def main(seed: int = 123):
     logging.info(f"Length of:\n\tTrain DataLoader: {len(train_dataloader)}\n\tTest DataLoader: {len(test_dataloader)}\n\tVal DataLoader: {len(val_dataloader)}\n")
 
     # Train the model
-    model = InteractionModel(dropout_rate=0.3, k=CONFIG['k_mer'])
-    # criterion = nn.CrossEntropyLoss()
-
-    # Try with BCEWithLogitsLoss
-    criterion = nn.BCEWithLogitsLoss()
+    model = InteractionModel(dropout_rate=0.3, k=CONFIG['k_mer'], useBCEWithLogits=CONFIG['useBCEWithLogitsLoss'])
+    
+    criterion = nn.BCEWithLogitsLoss() if CONFIG['useBCEWithLogitsLoss'] else nn.CrossEntropyLoss()
 
     optimizer = optim.AdamW(model.parameters(), lr=0.001, weight_decay=1e-4)
 
@@ -129,7 +130,8 @@ def main(seed: int = 123):
                                save_dir=save_dir,
                                early_stopping_metric='Val_Accuracy',
                                early_stopping_patience=CONFIG['early_stopping_patience'],
-                               early_stopping_delta=CONFIG['early_stopping_delta']).train()
+                               early_stopping_delta=CONFIG['early_stopping_delta'],
+                               useBCEWithLogitsLoss=CONFIG['useBCEWithLogitsLoss']).train()
     
     train_losses, val_losses, train_accuracies, val_accuracies, best_val_accuracy, best_val_loss, best_metrics = training_history
 

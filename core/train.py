@@ -6,14 +6,12 @@ from torch.optim import Optimizer
 from torch.optim.lr_scheduler import _LRScheduler, ReduceLROnPlateau
 from tqdm import tqdm
 from sklearn.metrics import accuracy_score, confusion_matrix
-import numpy as np
 from utils.metrics import DetailedMetrics
 from typing import Literal, Union
 from utils.EarlyStopping import EarlyStopping
 import os
-from utils.visuals import Plotter
 class Trainer():
-    def __init__(self, model: nn.Module, optimizer: Optimizer, criterion: nn.Module, scheduler: Union[_LRScheduler, ReduceLROnPlateau], device: torch.device, train_dataloader: DataLoader, val_dataloader: DataLoader, epochs: int, save_dir: str, early_stopping_metric: Literal['Val_Accuracy', 'Val_Loss'], early_stopping_patience: int, early_stopping_delta: float):
+    def __init__(self, model: nn.Module, optimizer: Optimizer, criterion: nn.Module, scheduler: Union[_LRScheduler, ReduceLROnPlateau], device: torch.device, train_dataloader: DataLoader, val_dataloader: DataLoader, epochs: int, save_dir: str, early_stopping_metric: Literal['Val_Accuracy', 'Val_Loss'], early_stopping_patience: int, early_stopping_delta: float, useBCEWithLogitsLoss: bool = False):
 
         self.model = model
         self.optimizer = optimizer
@@ -27,6 +25,12 @@ class Trainer():
         self.early_stopping_metric = early_stopping_metric
         self.early_stopping_patience = early_stopping_patience
         self.delta = early_stopping_delta
+        self.useBCEWithLogitsLoss = useBCEWithLogitsLoss
+
+        if self.useBCEWithLogitsLoss:
+            logging.info("Trainer initialized for BCEWithLogitsLoss...")
+        else:
+            logging.info("Trainer initialized for CrossEntropyLoss...")
 
         # create save directory if it doesn't exist
         if not os.path.exists(self.save_dir):
@@ -79,11 +83,14 @@ class Trainer():
             self.optimizer.step()
 
             total_loss += loss.item()
-            # _, predicted = torch.max(outputs.data, 1)
 
-            # To try with BCEWithLogitsLoss comment out above and uncomment below
-            probs = torch.sigmoid(outputs)
-            predicted = (probs > 0.5).long()
+            if self.useBCEWithLogitsLoss:
+                probabilities = torch.sigmoid(outputs)
+                predicted = (probabilities > 0.5).long()
+
+            else:
+                probabilities = torch.softmax(outputs, dim=1)
+                _, predicted = torch.max(outputs.data, 1)
             
             total_predictions += label.size(0)
             correct_predictions += int(predicted.eq(label).sum().item())
@@ -121,38 +128,46 @@ class Trainer():
 
                 total_loss += loss.item()
 
-                # probabilities = torch.softmax(outputs, dim=1)
-                # _, predicted = torch.max(outputs.data, 1)
+                if self.useBCEWithLogitsLoss:
+                    probabilities = torch.sigmoid(outputs)
+                    predicted = (probabilities > 0.5).long().squeeze(1)
 
-                # To try with BCEWithLogitsLoss comment out above and uncomment below
-                probs = torch.sigmoid(outputs)
-                predicted = (probs > 0.5).long().squeeze(1)
+                    all_predictions.extend(predicted.cpu().numpy().flatten())
+                    all_labels.extend(label.cpu().numpy().flatten())
+                    all_probabilities.extend(probabilities.cpu().numpy().flatten())
+                
+                else:
+                    probabilities = torch.softmax(outputs, dim=1)
+                    _, predicted = torch.max(outputs.data, 1)
 
-                # for nn.CrossEntropyLoss()
-                # all_predictions.extend(predicted.cpu().numpy())
-                # all_labels.extend(label.cpu().numpy())
-                # all_probabilities.extend(probabilities.cpu().numpy())
+                    all_predictions.extend(predicted.cpu().numpy())
+                    all_labels.extend(label.cpu().numpy())
+                    all_probabilities.extend(probabilities.cpu().numpy())
 
-                # for nn.BCEWithLogitsLoss()
-                all_predictions.extend(predicted.cpu().numpy().flatten())
-                all_labels.extend(label.cpu().numpy().flatten())
-                all_probabilities.extend(probs.cpu().numpy().flatten())
+                progress_bar.set_postfix({'Loss': f"{loss.item():.4f}"})
 
         avg_loss = total_loss/len(self.val_dataloader)
         accuracy = accuracy_score(all_labels, all_predictions)
 
-        # Get Detailed Metrics
-        #class_1_probs = [prob[1] for prob in all_probabilities]
-        
-        # For nn.CrossEntropyLoss()
-        #metrics = DetailedMetrics(y_true = all_labels, y_pred = all_predictions, y_prob = class_1_probs)._calculate_all_metrices()
-
-        # For nn.BCEWithLogitsLoss()
-        metrics = DetailedMetrics(y_true = all_labels, y_pred = all_predictions, y_prob = all_probabilities)._calculate_all_metrices()
+        if self.useBCEWithLogitsLoss:
+            logging.info("Trainer validate_epoch() using BCEWithLogitsLoss as Criterion to get Metrics ...")
+            metrics = DetailedMetrics(
+                y_true=all_labels,
+                y_pred=all_predictions,
+                y_prob=all_probabilities
+            )._calculate_all_metrices()
+        else:
+            logging.info("Trainer validate_epoch() using CrossEntropyLoss as Criterion to get Metrics ...")
+            class_1_probs = [prob[1] for prob in all_probabilities]
+            metrics = DetailedMetrics(
+                y_true=all_labels,
+                y_pred=all_predictions,
+                y_prob=class_1_probs
+            )._calculate_all_metrices()
 
         
         cm = confusion_matrix(all_labels, all_predictions)
-        print(type(cm))
+        
         metrics['confusion_matrix'] = cm
         logging.info(f"Epoch {epoch + 1} - Validation Loss: {avg_loss:.4f}, Validation Accuracy: {accuracy:.4f}, metrics: {metrics}")
 

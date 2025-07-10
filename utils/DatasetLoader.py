@@ -7,7 +7,7 @@ from utils.FCGR import FCGR
 import numpy as np
 
 class DatasetLoader(Dataset):
-    def __init__(self, dataset: pd.DataFrame, dataset_type: Literal['Train', 'Test', 'Validation'], k_mer: int, m_rna_col_name: str, mi_rna_col_name: str, class_col_name: str):
+    def __init__(self, dataset: pd.DataFrame, dataset_type: Literal['Train', 'Test', 'Validation'], k_mer: int, m_rna_col_name: str, mi_rna_col_name: str, class_col_name: str, useBCEWithLogitsLoss: bool = False):
 
         self.dataset = dataset
         self.dataset_type = dataset_type
@@ -15,8 +15,14 @@ class DatasetLoader(Dataset):
         self.m_rna_col_name = m_rna_col_name
         self.mi_rna_col_name = mi_rna_col_name
         self.class_col_name = class_col_name
+        self.useBCEWithLogitsLoss = useBCEWithLogitsLoss
 
         logging.info(f'Loaded {self.dataset_type} dataset with {len(self.dataset)} samples. Processing for {self.k_mer}-mer...')
+
+        if self.useBCEWithLogitsLoss:
+            logging.info("DatasetLoader initialized for BCEWithLogitsLoss...")
+        else:
+            logging.info("DatasetLoader initialized for CrossEntropyLoss...")
     
     def __len__(self):
         return len(self.dataset)
@@ -49,11 +55,12 @@ class DatasetLoader(Dataset):
                 case _:
                     raise ValueError(f"Invalid k_mer value in config: {self.k_mer}")
             
-            # for nn.CrossEntropyLoss()
-            #return torch.FloatTensor(m_rna_fcgr).unsqueeze(0), torch.FloatTensor(mi_rna_fcgr).unsqueeze(0), torch.tensor(label, dtype=torch.long)
-
-            # For nn.BCEWithLogitsLoss
-            return torch.FloatTensor(m_rna_fcgr).unsqueeze(0), torch.FloatTensor(mi_rna_fcgr).unsqueeze(0), torch.tensor([label], dtype=torch.float)
+            if self.useBCEWithLogitsLoss:
+                # logging.info("DatasetLoader returning dataset for BCEWithLogitsLoss...")
+                return torch.FloatTensor(m_rna_fcgr).unsqueeze(0), torch.FloatTensor(mi_rna_fcgr).unsqueeze(0), torch.tensor([label], dtype=torch.float)
+            else:
+                # logging.info("DatasetLoader returning dataset for CrossEntropyLoss...")
+                return torch.FloatTensor(m_rna_fcgr).unsqueeze(0), torch.FloatTensor(mi_rna_fcgr).unsqueeze(0), torch.tensor(label, dtype=torch.long)
         
         except Exception as e:
             logging.error("Error in __getitem__ of DatasetLoader:", e)

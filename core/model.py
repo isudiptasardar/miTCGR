@@ -294,10 +294,11 @@ class ModelK6(nn.Module):
         return x
 
 class InteractionModel(nn.Module):
-    def __init__(self, dropout_rate: float, k: int):
+    def __init__(self, dropout_rate: float, k: int, useBCEWithLogits: bool = False):
         super(InteractionModel, self).__init__()
         self.dropout_rate = dropout_rate
         self.k = k
+        self.useBCEWithLogits = useBCEWithLogits
 
         # Load model according to the k_mer provided
         match self.k:
@@ -366,12 +367,8 @@ class InteractionModel(nn.Module):
             nn.BatchNorm1d(num_features=32),
             nn.ReLU(),
             nn.Dropout(p=dropout_rate * 0.3), # Lower dropout rate before final prediction
-
-            # nn.Linear(in_features=32, out_features=2)
-
-            # For BCEWithLogitsLoss uncomment the following line and comment the line above
-            nn.Linear(in_features=32, out_features=1)
         )
+        self.output = nn.Linear(in_features=32, out_features=1) if self.useBCEWithLogits else nn.Linear(in_features=32, out_features=2)
 
         self._initialize_weights()
     
@@ -382,7 +379,8 @@ class InteractionModel(nn.Module):
         combined_features = torch.cat(tensors=(m_rna_features, mi_rna_features), dim=1)
 
         output = self.fc(combined_features)
-        return output
+        final_output = self.output(output)
+        return final_output
     
     
     def _initialize_weights(self):

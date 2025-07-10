@@ -1,3 +1,4 @@
+import logging
 import collections
 import numpy as np
 import re
@@ -24,7 +25,9 @@ class FCGR():
                 k_mer_dict[k_mer] += 1
             else:
                 skipped_kmers += 1
-        # print(f"Total number of skipped kmers: {skipped_kmers}")
+        # Log skipped kmers if any
+        if skipped_kmers > 0:
+            logging.warning(f"Total number of Skipped kmers: {skipped_kmers}")
         return k_mer_dict
 
     def k_mer_frequency(self):
@@ -86,8 +89,9 @@ class FCGR():
         if not self.sequence:
             return False
         if 'N' in self.sequence:
-            print(f"Sequence Contains N: {self.sequence}")
-            print(f"Total number of N in sequence: {self.sequence.count('N')}")
+            logging.warning(f"Sequence Contains N: {self.sequence}")
+            logging.warning(f"Total number of N in sequence: {self.sequence.count('N')}")
+            logging.error(f"Sequence: {self.sequence}")
         return bool(re.fullmatch(r"[ATGCN]*", self.sequence))
     
     
