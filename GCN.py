@@ -1,4 +1,3 @@
-
 import logging
 import os
 import random
@@ -239,10 +238,10 @@ def main():
     HIDDEN_DIM = 128
     DROPOUT_RATE = 0.5
     EARLY_STOPPING_PATIENCE = 10
-    DATA_PATH = "data/miraw.csv"
-    M_RNA_COL = "mRNA_Site_Transcript"
-    MI_RNA_COL = "mature_miRNA_Transcript"
-    CLASS_COL = "validation"
+    DATA_PATH = "data/deepmirtar.csv"
+    M_RNA_COL = "Target Site"
+    MI_RNA_COL = "miRNA_seq"
+    CLASS_COL = "label"
     SAVE_DIR = "gcn_results"
 
     set_seed(SEED)
