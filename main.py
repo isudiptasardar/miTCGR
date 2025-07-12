@@ -101,7 +101,7 @@ def main(seed: int = 123):
     # set device considering the macbook pro m1 also
     device = torch.device('cuda' if torch.cuda.is_available() else 'mps' if torch.backends.mps.is_available() and torch.backends.mps.is_built() else 'cpu')
 
-    scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=7, min_lr=1e-6)
+    scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=6, min_lr=1e-6) # should be max for val_acc and min for val_loss
 
     #where to save?
     save_dir = os.path.join(os.getcwd(), str(CONFIG['save_dir']), str(CONFIG['k_mer']), str(CONFIG['batch_size']))
