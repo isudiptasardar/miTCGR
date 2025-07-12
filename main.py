@@ -10,6 +10,7 @@ from torch import optim
 import torch.nn as nn
 import torch
 import multiprocessing as mp
+from torch.optim.lr_scheduler import ReduceLROnPlateau
 import numpy as np
 import random
 import os
@@ -100,12 +101,15 @@ def main(seed: int = 123):
     # set device considering the macbook pro m1 also
     device = torch.device('cuda' if torch.cuda.is_available() else 'mps' if torch.backends.mps.is_available() and torch.backends.mps.is_built() else 'cpu')
 
+    scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=7, min_lr=1e-6)
+
     #where to save?
     save_dir = os.path.join(os.getcwd(), str(CONFIG['save_dir']), str(CONFIG['k_mer']), str(CONFIG['batch_size']))
 
     training_history = Trainer(model=model,
                                optimizer=optimizer,
                                criterion=criterion,
+                               scheduler=scheduler,
                                device=device,
                                train_dataloader=train_dataloader,
                                val_dataloader=val_dataloader,
