@@ -1,13 +1,12 @@
 from typing import Dict
 
 CONFIG: Dict[str, any] = {
-    'raw_data_path': 'data/miraw.csv',
-    'm_rna_col_name': 'mRNA_Site_Transcript',
-    'mi_rna_col_name': 'mature_miRNA_Transcript',
-    'class_col_name': 'validation',
-    'k_mers': [3, 4, 5, 6],
-    'batch_sizes': [16, 32, 64, 128, 256],
-    'dropout_rates': [0.1, 0.3, 0.5],
+    'raw_data_path': 'data/deepmirtar.csv',
+    'm_rna_col_name': 'Target Site',
+    'mi_rna_col_name': 'miRNA_seq',
+    'class_col_name': 'label',
+    'k_mers': 6,
+    'batch_sizes': 32,
     'save_dir': 'output',
     'early_stopping_patience': 10,
     'total_epochs': 100,
