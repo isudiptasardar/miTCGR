@@ -11,7 +11,7 @@ from typing import Literal, Union
 from utils.EarlyStopping import EarlyStopping
 import os
 class Trainer():
-    def __init__(self, model: nn.Module, optimizer: Optimizer, criterion: nn.Module, scheduler: Union[_LRScheduler, ReduceLROnPlateau], device: torch.device, train_dataloader: DataLoader, val_dataloader: DataLoader, epochs: int, save_dir: str, early_stopping_metric: Literal['Val_Accuracy', 'Val_Loss'], early_stopping_patience: int, early_stopping_delta: float, useBCEWithLogitsLoss: bool = False):
+    def __init__(self, model: nn.Module, optimizer: Optimizer, criterion: nn.Module, device: torch.device, train_dataloader: DataLoader, val_dataloader: DataLoader, epochs: int, save_dir: str, early_stopping_metric: Literal['Val_Accuracy', 'Val_Loss'], early_stopping_patience: int, early_stopping_delta: float, useBCEWithLogitsLoss: bool = False):
 
         self.model = model
         self.optimizer = optimizer
@@ -20,7 +20,6 @@ class Trainer():
         self.train_dataloader = train_dataloader
         self.val_dataloader = val_dataloader
         self.epochs = epochs
-        self.scheduler = scheduler
         self.save_dir = save_dir
         self.early_stopping_metric = early_stopping_metric
         self.early_stopping_patience = early_stopping_patience
@@ -196,7 +195,7 @@ class Trainer():
             val_loss, val_acc, val_metrics = self.validate_epoch(epoch)
 
             # Update learning rate scheduler
-            self.scheduler.step(val_loss)
+            #self.scheduler.step(val_loss)
 
             # Store history
             train_losses.append(train_loss)

@@ -48,99 +48,106 @@ def main(seed: int = 123):
         if col not in dataset.columns:
             raise Exception(f"Column {col} not found in the dataset, required columns: {required_cols}")
     
+    # Train -> 80%, Test -> 20%
+    train, val = train_test_split(dataset, test_size=0.2, random_state=seed, stratify=dataset[CONFIG['class_col_name']], shuffle=True)
     
-    # training -> 70%, validation -> 15%, testing -> 15%
-    train, val_test = train_test_split(dataset, test_size=0.3, random_state=seed, stratify=dataset[CONFIG['class_col_name']], shuffle=True)
-    val, test = train_test_split(val_test, test_size=0.5, random_state=seed, stratify=val_test[CONFIG['class_col_name']], shuffle=True)
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+    for k in CONFIG['k_mers']:
+        
+        for batch_size in CONFIG['batch_sizes']:
+
+            for learning_rate in CONFIG['learning_rates']:
+
+                for dropout_rate in CONFIG['dropouts']:
+
+                    train_dataset = DatasetLoader(
+                    dataset=train,
+                    dataset_type='Train',
+                    k_mer=k,
+                    m_rna_col_name=CONFIG['m_rna_col_name'],
+                    mi_rna_col_name=CONFIG['mi_rna_col_name'],
+                    class_col_name=CONFIG['class_col_name'],
+                    useBCEWithLogitsLoss=CONFIG['useBCEWithLogitsLoss']
+                )
+
+                val_dataset = DatasetLoader(
+                    dataset=val,
+                    dataset_type='Validation',
+                    k_mer=k,
+                    m_rna_col_name=CONFIG['m_rna_col_name'],
+                    mi_rna_col_name=CONFIG['mi_rna_col_name'],
+                    class_col_name=CONFIG['class_col_name'],
+                    useBCEWithLogitsLoss=CONFIG['useBCEWithLogitsLoss']
+                )
+
+                num_workers = mp.cpu_count() // 2
+
+                g = torch.Generator()
+                g.manual_seed(seed)
+
+                logger.info(f"Number of workers: {num_workers}")
+
+                train_dataloader = DataLoader(
+                    dataset=train_dataset,
+                    batch_size=batch_size,
+                    shuffle=True,
+                    num_workers=num_workers,
+                    worker_init_fn=seed_worker,
+                    generator=g,
+                    collate_fn=custom_collate_fn
+                )
+
+                val_dataloader = DataLoader(
+                    dataset=val_dataset,
+                    batch_size=batch_size,
+                    shuffle=False,
+                    num_workers=num_workers,
+                    worker_init_fn=seed_worker,
+                    generator=g,
+                    collate_fn=custom_collate_fn
+                )
+
+                model = InteractionModel(dropout_rate=dropout_rate, k=k, useBCEWithLogits=CONFIG['useBCEWithLogitsLoss'])
+
+                criterion = nn.BCEWithLogitsLoss() if CONFIG['useBCEWithLogitsLoss'] else nn.CrossEntropyLoss()
+
+                optimizer = optim.AdamW(params=model.parameters(), lr=learning_rate, weight_decay=1e-4)
+
+                save_dir = os.path.join(CONFIG['save_dir'], f"k_{k}_batch_{batch_size}_lr_{learning_rate}_dropout_{dropout_rate}")
+
+                training_history = Trainer(
+                    model=model,
+                    optimizer=optimizer,
+                    criterion=criterion,
+                    device=device,
+                    train_dataloader=train_dataloader,
+                    val_dataloader=val_dataloader,
+                    epochs=CONFIG['total_epochs'],
+                    save_dir=save_dir,
+                    early_stopping_metric='Val_Accuracy',
+                    early_stopping_patience=CONFIG['early_stopping_patience'],
+                    early_stopping_delta=CONFIG['early_stopping_delta'],
+                    useBCEWithLogitsLoss=CONFIG['useBCEWithLogitsLoss']
+                ).train()
+
+                train_losses, val_losses, train_accuracies, val_accuracies, best_val_accuracy, best_val_loss, best_metrics = training_history
+
+                plotter = Plotter(
+                    train_losses=train_losses,
+                    val_losses=val_losses,
+                    train_accuracies=train_accuracies,
+                    val_accuracies=val_accuracies,
+                    save_dir=save_dir
+                )
+
+                plotter.plot_training()
+                plotter.plot_confusion_matrix(cm=best_metrics['cm'])
+                logger.log(f"Best Validation Accuracy: {best_val_accuracy}")
+
+                logger.log(f"Best Validation Loss: {best_val_loss}")
+                logger.log(f"Best Validation Loss: {best_val_loss}")
     
-    # Load the Dataset
-    train_dataset = DatasetLoader(dataset=train,
-                                  dataset_type='Train',
-                                  k_mer=CONFIG['k_mer'],
-                                  m_rna_col_name=CONFIG['m_rna_col_name'],
-                                  mi_rna_col_name=CONFIG['mi_rna_col_name'],
-                                  class_col_name=CONFIG['class_col_name'],
-                                  useBCEWithLogitsLoss=CONFIG['useBCEWithLogitsLoss'])
-
-    test_dataset = DatasetLoader(dataset=test,
-                                 dataset_type='Test',
-                                 k_mer=CONFIG['k_mer'],
-                                 m_rna_col_name=CONFIG['m_rna_col_name'],
-                                 mi_rna_col_name=CONFIG['mi_rna_col_name'],
-                                 class_col_name=CONFIG['class_col_name'],
-                                 useBCEWithLogitsLoss=CONFIG['useBCEWithLogitsLoss'])
-    
-    val_dataset = DatasetLoader(dataset=val,
-                                dataset_type='Validation',
-                                k_mer=CONFIG['k_mer'],
-                                m_rna_col_name=CONFIG['m_rna_col_name'],
-                                mi_rna_col_name=CONFIG['mi_rna_col_name'],
-                                class_col_name=CONFIG['class_col_name'],
-                                useBCEWithLogitsLoss=CONFIG['useBCEWithLogitsLoss'])
-
-    # create dataloaders
-    num_workers = mp.cpu_count() // 2
-
-    g = torch.Generator()
-    g.manual_seed(seed)
-
-    logging.info(f"Number of workers: {num_workers} for DataLoader")
-    train_dataloader = DataLoader(train_dataset, batch_size=CONFIG['batch_size'], shuffle=True, collate_fn=custom_collate_fn, num_workers=num_workers, worker_init_fn=seed_worker, generator=g)
-    test_dataloader = DataLoader(test_dataset, batch_size=CONFIG['batch_size'], shuffle=False, collate_fn=custom_collate_fn, num_workers=num_workers, worker_init_fn=seed_worker, generator=g)
-    val_dataloader = DataLoader(val_dataset, batch_size=CONFIG['batch_size'], shuffle=False, collate_fn=custom_collate_fn, num_workers=num_workers, worker_init_fn=seed_worker, generator=g)
-
-    logging.info(f"Length of:\n\tTrain DataLoader: {len(train_dataloader)}\n\tTest DataLoader: {len(test_dataloader)}\n\tVal DataLoader: {len(val_dataloader)}\n")
-
-    # Train the model
-    model = InteractionModel(dropout_rate=0.3, k=CONFIG['k_mer'], useBCEWithLogits=CONFIG['useBCEWithLogitsLoss'])
-    
-    criterion = nn.BCEWithLogitsLoss() if CONFIG['useBCEWithLogitsLoss'] else nn.CrossEntropyLoss()
-
-    optimizer = optim.AdamW(model.parameters(), lr=0.001, weight_decay=1e-4)
-
-    # set device considering the macbook pro m1 also
-    device = torch.device('cuda' if torch.cuda.is_available() else 'mps' if torch.backends.mps.is_available() and torch.backends.mps.is_built() else 'cpu')
-
-    scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=6, min_lr=1e-6) # should be max for val_acc and min for val_loss
-
-    #where to save?
-    save_dir = os.path.join(os.getcwd(), str(CONFIG['save_dir']), str(CONFIG['k_mer']), str(CONFIG['batch_size']))
-
-    training_history = Trainer(model=model,
-                               optimizer=optimizer,
-                               criterion=criterion,
-                               scheduler=scheduler,
-                               device=device,
-                               train_dataloader=train_dataloader,
-                               val_dataloader=val_dataloader,
-                               epochs=CONFIG['total_epochs'],
-                               save_dir=save_dir,
-                               early_stopping_metric='Val_Accuracy',
-                               early_stopping_patience=CONFIG['early_stopping_patience'],
-                               early_stopping_delta=CONFIG['early_stopping_delta'],
-                               useBCEWithLogitsLoss=CONFIG['useBCEWithLogitsLoss']).train()
-    
-    train_losses, val_losses, train_accuracies, val_accuracies, best_val_accuracy, best_val_loss, best_metrics = training_history
-
-    #Plot the training history
-    plotter = Plotter(
-        train_losses=train_losses,
-        val_losses=val_losses,
-        train_accuracies=train_accuracies,
-        val_accuracies=val_accuracies,
-        save_dir=save_dir
-    )
-
-    plotter.plot_training()
-    plotter.plot_confusion_matrix(cm=best_metrics['confusion_matrix'])
-
-    logger.info(f"Best Validation Accuracy: {best_val_accuracy}")
-    logger.info(f"Best Validation Loss: {best_val_loss}")
-    logger.info(f"Best Metrics: {best_metrics}")
-    logger.info(f"Train Losses: {train_losses}")
-    logger.info(f"Val Losses: {val_losses}")
-    logger.info(f"Train Accuracies: {train_accuracies}")
-    logger.info(f"Val Accuracies: {val_accuracies}")
 
 if __name__ == "__main__":
     # Set up logging
