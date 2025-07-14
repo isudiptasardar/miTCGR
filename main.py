@@ -142,7 +142,7 @@ def main(seed: int = 123):
                 )
 
                 plotter.plot_training()
-                plotter.plot_confusion_matrix(cm=best_metrics['cm'])
+                plotter.plot_confusion_matrix(cm=best_metrics['confusion_matrix'])
                 logger.log(f"Best Validation Accuracy: {best_val_accuracy}")
 
                 logger.log(f"Best Validation Loss: {best_val_loss}")
