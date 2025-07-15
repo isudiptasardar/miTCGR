@@ -15,6 +15,9 @@ import numpy as np
 import random
 import os
 from utils.visuals import Plotter
+import json
+import time
+from datetime import datetime
 
 def seed_worker(worker_id):
     worker_seed = torch.initial_seed() % 2**32
@@ -52,6 +55,19 @@ def main(seed: int = 123):
     train, val = train_test_split(dataset, test_size=0.2, random_state=seed, stratify=dataset[CONFIG['class_col_name']], shuffle=True)
     
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    
+    # Hyperparameter optimization tracking
+    hyperparameter_results = []
+    best_hyperparams = None
+    global_best_val_accuracy = 0.0
+    
+    # Calculate total combinations for progress tracking
+    total_combinations = len(CONFIG['k_mers']) * len(CONFIG['batch_sizes']) * len(CONFIG['learning_rates']) * len(CONFIG['dropouts'])
+    current_combination = 0
+    start_time = time.time()
+    
+    logger.info(f"Starting hyperparameter optimization with {total_combinations} combinations")
+    logger.info(f"Device: {device}")
 
     for k in CONFIG['k_mers']:
         
@@ -60,6 +76,16 @@ def main(seed: int = 123):
             for learning_rate in CONFIG['learning_rates']:
 
                 for dropout_rate in CONFIG['dropouts']:
+                    
+                    current_combination += 1
+                    elapsed_time = time.time() - start_time
+                    avg_time_per_combination = elapsed_time / current_combination if current_combination > 0 else 0
+                    remaining_combinations = total_combinations - current_combination
+                    estimated_remaining_time = avg_time_per_combination * remaining_combinations
+                    
+                    logger.info(f"=== Combination {current_combination}/{total_combinations} ===")
+                    logger.info(f"k_mer: {k}, batch_size: {batch_size}, learning_rate: {learning_rate}, dropout: {dropout_rate}")
+                    logger.info(f"Elapsed: {elapsed_time/60:.1f}min, Estimated remaining: {estimated_remaining_time/60:.1f}min")
 
                     train_dataset = DatasetLoader(
                     dataset=train,
@@ -143,10 +169,81 @@ def main(seed: int = 123):
 
                 plotter.plot_training()
                 plotter.plot_confusion_matrix(cm=best_metrics['confusion_matrix'])
-                logger.log(f"Best Validation Accuracy: {best_val_accuracy}")
-
-                logger.log(f"Best Validation Loss: {best_val_loss}")
-                logger.log(f"Best Validation Loss: {best_val_loss}")
+                
+                # Store hyperparameter results
+                hyperparameter_result = {
+                    'k_mer': k,
+                    'batch_size': batch_size,
+                    'learning_rate': learning_rate,
+                    'dropout_rate': dropout_rate,
+                    'val_accuracy': best_val_accuracy,
+                    'val_loss': best_val_loss,
+                    'save_dir': save_dir,
+                    'timestamp': datetime.now().isoformat(),
+                    'metrics': best_metrics
+                }
+                hyperparameter_results.append(hyperparameter_result)
+                
+                # Track best hyperparameters
+                if best_val_accuracy > global_best_val_accuracy:
+                    global_best_val_accuracy = best_val_accuracy
+                    best_hyperparams = {
+                        'k_mer': k,
+                        'batch_size': batch_size,
+                        'learning_rate': learning_rate,
+                        'dropout_rate': dropout_rate,
+                        'val_accuracy': best_val_accuracy,
+                        'val_loss': best_val_loss,
+                        'save_dir': save_dir
+                    }
+                
+                logger.info(f"Current Run - Val Accuracy: {best_val_accuracy}, Val Loss: {best_val_loss}")
+                logger.info(f"Global Best - Val Accuracy: {global_best_val_accuracy}")
+                
+                # Save intermediate results
+                results_file = os.path.join(CONFIG['save_dir'], 'hyperparameter_results.json')
+                os.makedirs(CONFIG['save_dir'], exist_ok=True)
+                with open(results_file, 'w') as f:
+                    json.dump(hyperparameter_results, f, indent=2, default=str)
+    
+    # Final hyperparameter optimization summary
+    total_time = time.time() - start_time
+    logger.info(f"\n=== HYPERPARAMETER OPTIMIZATION COMPLETE ===")
+    logger.info(f"Total time: {total_time/60:.1f} minutes")
+    logger.info(f"Total combinations tested: {total_combinations}")
+    logger.info(f"Average time per combination: {total_time/total_combinations:.1f} seconds")
+    
+    if best_hyperparams:
+        logger.info(f"\n=== BEST HYPERPARAMETERS ===")
+        logger.info(f"k_mer: {best_hyperparams['k_mer']}")
+        logger.info(f"batch_size: {best_hyperparams['batch_size']}")
+        logger.info(f"learning_rate: {best_hyperparams['learning_rate']}")
+        logger.info(f"dropout_rate: {best_hyperparams['dropout_rate']}")
+        logger.info(f"Best validation accuracy: {best_hyperparams['val_accuracy']:.4f}")
+        logger.info(f"Best validation loss: {best_hyperparams['val_loss']:.4f}")
+        logger.info(f"Best model saved at: {best_hyperparams['save_dir']}")
+    
+    # Save final results and create CSV summary
+    final_results_file = os.path.join(CONFIG['save_dir'], 'final_hyperparameter_results.json')
+    with open(final_results_file, 'w') as f:
+        json.dump({
+            'best_hyperparams': best_hyperparams,
+            'all_results': hyperparameter_results,
+            'summary': {
+                'total_time_minutes': total_time/60,
+                'total_combinations': total_combinations,
+                'best_accuracy': global_best_val_accuracy
+            }
+        }, f, indent=2, default=str)
+    
+    # Create CSV summary for easy analysis
+    df_results = pd.DataFrame(hyperparameter_results)
+    csv_file = os.path.join(CONFIG['save_dir'], 'hyperparameter_results.csv')
+    df_results.to_csv(csv_file, index=False)
+    
+    logger.info(f"\nResults saved to:")
+    logger.info(f"- JSON: {final_results_file}")
+    logger.info(f"- CSV: {csv_file}")
     
 
 if __name__ == "__main__":
